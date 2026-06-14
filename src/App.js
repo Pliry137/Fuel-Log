@@ -1,32 +1,43 @@
 import { useState, useEffect, useRef } from "react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
-const API = "";  // empty = same host (proxied in dev, direct in prod)
-const TOKEN_KEY = "fuel-log-token";
-// One-time token injection via URL: ?token=XYZ — saves to localStorage and strips from URL
-(() => {
-  if (typeof window === "undefined") return;
+const API = "";  // empty = same host
+// Auth lives in an HttpOnly cookie set by /api/login. Browser sends it
+// automatically with every same-origin request.
+const apiFetch = (url, opts = {}) => fetch(url, {
+  credentials: "same-origin",
+  ...opts,
+});
+
+// Magic link support: visiting /?token=XYZ calls /api/login to set the cookie,
+// then strips the token from the URL.
+async function tryMagicLinkLogin() {
+  if (typeof window === "undefined") return false;
   const params = new URLSearchParams(window.location.search);
   const t = params.get("token");
-  if (t && t.length >= 32) {
-    localStorage.setItem(TOKEN_KEY, t.trim());
-    params.delete("token");
-    const newSearch = params.toString();
-    window.history.replaceState({}, "", window.location.pathname + (newSearch ? "?" + newSearch : ""));
-  }
-})();
-const getToken = () => localStorage.getItem(TOKEN_KEY) || "";
-const apiFetch = (url, opts = {}) => fetch(url, {
-  ...opts,
-  headers: { ...(opts.headers || {}), "X-Auth-Token": getToken() }
-});
+  if (!t || t.length < 32) return false;
+  try {
+    const r = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: t.trim() }),
+      credentials: "same-origin",
+    });
+    if (!r.ok) return false;
+  } catch { return false; }
+  params.delete("token");
+  const newSearch = params.toString();
+  window.history.replaceState({}, "", window.location.pathname + (newSearch ? "?" + newSearch : ""));
+  return true;
+}
 const fmt = (d) => { const [,m,day] = d.split("-"); return `${parseInt(m)}/${parseInt(day)}`; };
 
 async function extractMacros({ text, image }) {
   const res = await fetch("/api/extract-macros", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "X-Auth-Token": localStorage.getItem("fuel-log-token") || "" },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text, image }),
+    credentials: "same-origin", // browser sends fl_token cookie automatically
   });
   if (!res.ok) throw new Error(`API ${res.status}`);
   const data = await res.json();
@@ -61,16 +72,17 @@ export default function FoodTracker() {
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(getToken());
+  const [authed, setAuthed] = useState(null);  // null = checking, true/false = known
   const [tokenInput, setTokenInput] = useState("");
   const [tokenError, setTokenError] = useState("");
 
   const initialLoadDone = useRef(false);
 
-  // Load all data from API on mount, poll every 10s, refetch on tab focus
+  // Load all data from API on mount. If unauthorized → show token form.
+  // After successful auth: poll every 30s, refetch on tab focus.
   useEffect(() => {
-    if (!token) { setLoading(false); return; }
     let cancelled = false;
+    let interval;
 
     const loadAll = async (isInitial = false) => {
       try {
@@ -87,6 +99,7 @@ export default function FoodTracker() {
         setTargets(t);
         setFavorites(f);
         setWhoopStatus(ws);
+        setAuthed(true);
         setLoading(false);
         setTokenError("");
         if (isInitial && !initialLoadDone.current) {
@@ -98,31 +111,33 @@ export default function FoodTracker() {
         }
       } catch (err) {
         if (cancelled) return;
-        // Only clear token + show prompt on INITIAL load failure.
-        // During polling, silently keep last good state — transient 404s
-        // during server restarts shouldn't kick the user out.
         if (isInitial && err.message === "auth") {
-          localStorage.removeItem(TOKEN_KEY);
-          setToken("");
-          setTokenError("Invalid token. Try again.");
+          setAuthed(false);
           setLoading(false);
         }
+        // For polling: silently keep last good state (transient 404s OK)
       }
     };
 
-    loadAll(true);
-    const interval = setInterval(() => loadAll(false), 30000);
     const onVisible = () => { if (!document.hidden) loadAll(false); };
-    document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", onVisible);
+
+    (async () => {
+      await tryMagicLinkLogin();
+      if (cancelled) return;
+      await loadAll(true);
+      if (cancelled) return;
+      interval = setInterval(() => loadAll(false), 30000);
+      document.addEventListener("visibilitychange", onVisible);
+      window.addEventListener("focus", onVisible);
+    })();
 
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onVisible);
     };
-  }, [token]);
+  }, []);
 
   const dayEntries = (date) => entries.filter(e => e.date === date);
   const dayTotals = (date) => dayEntries(date).reduce((acc, e) => ({
@@ -304,10 +319,31 @@ export default function FoodTracker() {
     </div>
   );
 
-  if (!token) return (
+  if (authed === false) return (
     <div style={{ minHeight: "100vh", background: "#faf7f2", color: "#2a2a2a", fontFamily: "'DM Mono', 'Courier New', monospace", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap'); input:focus { outline: none; border-color: #a8c078 !important; }`}</style>
-      <form onSubmit={(e) => { e.preventDefault(); if (tokenInput.trim()) { localStorage.setItem(TOKEN_KEY, tokenInput.trim()); setToken(tokenInput.trim()); setLoading(true); } }} style={{ width: "100%", maxWidth: 400 }}>
+      <form onSubmit={async (e) => {
+        e.preventDefault();
+        const t = tokenInput.trim();
+        if (!t) return;
+        setTokenError("");
+        try {
+          const r = await fetch("/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: t }),
+            credentials: "same-origin",
+          });
+          if (r.ok) {
+            // Cookie set — reload to re-run the effect with auth in place
+            window.location.reload();
+          } else {
+            setTokenError("Invalid token. Try again.");
+          }
+        } catch {
+          setTokenError("Network error. Try again.");
+        }
+      }} style={{ width: "100%", maxWidth: 400 }}>
         <div style={{ fontSize: 10, color: "#a8c078", letterSpacing: 3, marginBottom: 16 }}>FUEL LOG</div>
         <div style={{ fontSize: 12, color: "#6a6a6a", marginBottom: 20, lineHeight: 1.6 }}>Enter your access token to continue. You'll only need to do this once on this device.</div>
         <input type="password" autoFocus value={tokenInput} onChange={(e) => setTokenInput(e.target.value)} placeholder="paste token here" style={{ width: "100%", background: "#ffffff", border: "1px solid #dcd5cf", color: "#2a2a2a", borderRadius: 6, padding: "12px 14px", fontFamily: "inherit", fontSize: 13, marginBottom: 12 }} />
