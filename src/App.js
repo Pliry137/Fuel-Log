@@ -346,8 +346,17 @@ export default function FoodTracker() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
         <div>
           <div style={{ fontSize: 10, color: "#a8c078", letterSpacing: 3, textTransform: "uppercase", marginBottom: 4 }}>FUEL LOG</div>
-          <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
-            style={{ background: "none", border: "none", color: "#2a2a2a", fontSize: 20, fontFamily: "inherit", fontWeight: 500, cursor: "pointer", padding: 0, colorScheme: "light" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <button onClick={() => { const d = new Date(selectedDate + "T00:00:00"); d.setDate(d.getDate() - 1); setSelectedDate(d.toISOString().split("T")[0]); }}
+              title="Previous day"
+              style={{ background: "none", border: "none", color: "#9a9a9a", fontSize: 20, cursor: "pointer", padding: "0 6px", lineHeight: 1, fontFamily: "inherit" }}>‹</button>
+            <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
+              style={{ background: "none", border: "none", color: "#2a2a2a", fontSize: 20, fontFamily: "inherit", fontWeight: 500, cursor: "pointer", padding: 0, colorScheme: "light" }} />
+            <button onClick={() => { const d = new Date(selectedDate + "T00:00:00"); d.setDate(d.getDate() + 1); setSelectedDate(d.toISOString().split("T")[0]); }}
+              title="Next day"
+              disabled={selectedDate >= today}
+              style={{ background: "none", border: "none", color: selectedDate >= today ? "#dcd5cf" : "#9a9a9a", fontSize: 20, cursor: selectedDate >= today ? "default" : "pointer", padding: "0 6px", lineHeight: 1, fontFamily: "inherit" }}>›</button>
+          </div>
         </div>
         <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
           {["log", "trends"].map(t => (
