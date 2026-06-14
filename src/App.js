@@ -48,6 +48,7 @@ export default function FoodTracker() {
   const [entries, setEntries] = useState([]);
   const [favorites, setFavorites] = useState([]);
   const [whoopData, setWhoopData] = useState({});
+  const [whoopStatus, setWhoopStatus] = useState(null);
   const [targets, setTargets] = useState({ calories: 2175, protein: 168, carbs: 185, fat: 68 });
   const [showWhoopPrompt, setShowWhoopPrompt] = useState(false);
   const [whoopDate, setWhoopDate] = useState(yesterday);
@@ -73,17 +74,19 @@ export default function FoodTracker() {
 
     const loadAll = async (isInitial = false) => {
       try {
-        const [e, w, t, f] = await Promise.all([
+        const [e, w, t, f, ws] = await Promise.all([
           apiFetch(`${API}/api/entries`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
           apiFetch(`${API}/api/whoop`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
           apiFetch(`${API}/api/targets`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
           apiFetch(`${API}/api/favorites`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
+          apiFetch(`${API}/api/whoop-status`).then(r => r.ok ? r.json() : { connected: false }),
         ]);
         if (cancelled) return;
         setEntries(e);
         setWhoopData(w);
         setTargets(t);
         setFavorites(f);
+        setWhoopStatus(ws);
         setLoading(false);
         setTokenError("");
         if (isInitial && !initialLoadDone.current) {
@@ -405,9 +408,28 @@ export default function FoodTracker() {
             );
           })()}
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 8 }}>
           <div style={{ fontSize: 10, color: "#dcd5cf", letterSpacing: 1 }}>TARGETS: {targets.calories} · {targets.protein}P · {targets.carbs}C · {targets.fat}F</div>
-          <button onClick={() => openWhoopPrompt(selectedDate)} style={{ background: "none", border: "1px solid #dcd5cf", color: "#9a9a9a", borderRadius: 6, padding: "4px 10px", fontFamily: "inherit", fontSize: 9, cursor: "pointer", letterSpacing: 1 }}>+ WHOOP</button>
+          <div style={{ display: "flex", gap: 6 }}>
+            {whoopStatus && !whoopStatus.connected && (
+              <button onClick={async () => {
+                const r = await apiFetch(`${API}/api/whoop-connect`);
+                const data = await r.json();
+                if (data.url) window.location.href = data.url;
+                else alert(data.error || "Failed to start Whoop OAuth");
+              }} style={{ background: "#eaf2dc", border: "1px solid #c8d8a8", color: "#3a4a1a", borderRadius: 6, padding: "4px 10px", fontFamily: "inherit", fontSize: 9, cursor: "pointer", letterSpacing: 1 }}>CONNECT WHOOP</button>
+            )}
+            {whoopStatus && whoopStatus.connected && (
+              <button onClick={async () => {
+                const r = await apiFetch(`${API}/api/whoop-sync?days=7`);
+                const data = await r.json();
+                alert(data.ok ? `Synced ${data.synced} day(s): ${data.dates.join(", ")}` : `Sync failed: ${data.error}`);
+                if (data.ok) location.reload();
+              }} title={whoopStatus.last_sync_at ? `Last sync: ${new Date(whoopStatus.last_sync_at).toLocaleString()} — ${whoopStatus.last_sync_status}` : "Never synced yet"}
+                style={{ background: "none", border: "1px solid #dcd5cf", color: "#9a9a9a", borderRadius: 6, padding: "4px 10px", fontFamily: "inherit", fontSize: 9, cursor: "pointer", letterSpacing: 1 }}>SYNC WHOOP</button>
+            )}
+            <button onClick={() => openWhoopPrompt(selectedDate)} style={{ background: "none", border: "1px solid #dcd5cf", color: "#9a9a9a", borderRadius: 6, padding: "4px 10px", fontFamily: "inherit", fontSize: 9, cursor: "pointer", letterSpacing: 1 }}>+ MANUAL</button>
+          </div>
         </div>
 
         {/* Entries */}
