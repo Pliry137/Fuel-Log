@@ -1,0 +1,17 @@
+# Don't ship local-only server, data files, or secrets to Vercel
+server.js
+data/
+migration/
+*.command
+*.plist
+.auth-token
+.anthropic-key
+server.log
+server.err.log
+node_modules/
+src/App.backup-*.js
+SETUP.md
+BACKLOG.md
+IOS-SHORTCUT-SETUP.md
+FUEL-LOG-PROJECT-INSTRUCTIONS.md
+claude-project-instructions.md

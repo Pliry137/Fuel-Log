@@ -1,0 +1,40 @@
+# Secrets — NEVER commit
+.auth-token
+.anthropic-key
+.env
+.env.*
+!.env.example
+
+# Vercel
+.vercel
+
+# Local data files (now lives in Supabase)
+data/
+
+# Local-only Mac Mini server stuff
+server.log
+server.err.log
+*.log
+
+# Build output
+build/
+dist/
+
+# Dependencies
+node_modules/
+
+# Old App.js backups from edits
+src/App.backup-*.js
+src/App.backup-pre-*.js
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Migration artifacts (one-time, no need to commit)
+migration/
