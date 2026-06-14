@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/whoop-sync?days=3",
+      "path": "/api/whoop-mgmt?action=sync&days=3",
       "schedule": "0 8 * * *"
     }
   ]

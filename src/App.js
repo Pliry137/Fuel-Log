@@ -17,7 +17,7 @@ async function tryMagicLinkLogin() {
   const t = params.get("token");
   if (!t || t.length < 32) return false;
   try {
-    const r = await fetch("/api/login", {
+    const r = await fetch("/api/auth?action=login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token: t.trim() }),
@@ -91,7 +91,7 @@ export default function FoodTracker() {
           apiFetch(`${API}/api/whoop`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
           apiFetch(`${API}/api/targets`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
           apiFetch(`${API}/api/favorites`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
-          apiFetch(`${API}/api/whoop-status`).then(r => r.ok ? r.json() : { connected: false }),
+          apiFetch(`${API}/api/whoop-mgmt?action=status`).then(r => r.ok ? r.json() : { connected: false }),
         ]);
         if (cancelled) return;
         setEntries(e);
@@ -328,7 +328,7 @@ export default function FoodTracker() {
         if (!t) return;
         setTokenError("");
         try {
-          const r = await fetch("/api/login", {
+          const r = await fetch("/api/auth?action=login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ token: t }),
@@ -449,7 +449,7 @@ export default function FoodTracker() {
           <div style={{ display: "flex", gap: 6 }}>
             {whoopStatus && !whoopStatus.connected && (
               <button onClick={async () => {
-                const r = await apiFetch(`${API}/api/whoop-connect`);
+                const r = await apiFetch(`${API}/api/whoop-mgmt?action=connect`);
                 const data = await r.json();
                 if (data.url) window.location.href = data.url;
                 else alert(data.error || "Failed to start Whoop OAuth");
@@ -457,7 +457,7 @@ export default function FoodTracker() {
             )}
             {whoopStatus && whoopStatus.connected && (
               <button onClick={async () => {
-                const r = await apiFetch(`${API}/api/whoop-sync?days=7`);
+                const r = await apiFetch(`${API}/api/whoop-mgmt?action=sync&days=7`);
                 const data = await r.json();
                 alert(data.ok ? `Synced ${data.synced} day(s): ${data.dates.join(", ")}` : `Sync failed: ${data.error}`);
                 if (data.ok) location.reload();
