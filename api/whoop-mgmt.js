@@ -1,14 +1,11 @@
 // Consolidated Whoop management: status, OAuth start, sync.
-// Actions picked by ?action= query param.
-//   GET  /api/whoop-mgmt?action=status   → connection state
-//   GET  /api/whoop-mgmt?action=connect  → returns Whoop OAuth URL (browser navigates to it)
-//   GET  /api/whoop-mgmt?action=sync     → pulls cycles (also called by Vercel cron)
+//   GET  /api/whoop-mgmt?action=status
+//   GET  /api/whoop-mgmt?action=connect
+//   GET  /api/whoop-mgmt?action=sync (also called by Vercel cron — iterates all users)
 const { db } = require('./_db');
-const { checkAuth, notFound } = require('./_auth');
+const { requireUser } = require('./_auth');
 const { WHOOP_AUTH_URL, SCOPES, getValidAccessToken, WHOOP_API_BASE } = require('./_whoop');
 
-// Map a Whoop cycle to a YYYY-MM-DD string using its end time in the cycle's
-// reported timezone offset.
 const cycleToDate = (cycle) => {
   const isoEnd = cycle.end || cycle.start;
   const offset = cycle.timezone_offset || 'Z';
@@ -21,8 +18,13 @@ const cycleToDate = (cycle) => {
 };
 
 async function handleStatus(req, res) {
-  if (!checkAuth(req)) return notFound(res);
-  const { data } = await db.from('whoop_auth').select('expires_at, last_sync_at, last_sync_status').eq('id', 1).maybeSingle();
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const { data } = await db
+    .from('whoop_auth')
+    .select('expires_at, last_sync_at, last_sync_status')
+    .eq('user_id', user.id)
+    .maybeSingle();
   if (!data) return res.json({ connected: false });
   return res.json({
     connected: true,
@@ -33,14 +35,16 @@ async function handleStatus(req, res) {
 }
 
 async function handleConnect(req, res) {
-  if (!checkAuth(req)) return notFound(res);
+  const user = await requireUser(req, res);
+  if (!user) return;
   if (!process.env.WHOOP_CLIENT_ID || !process.env.WHOOP_CLIENT_SECRET) {
     return res.status(503).json({ error: 'Whoop env vars not configured' });
   }
   const host = req.headers['x-forwarded-host'] || req.headers.host;
   const proto = req.headers['x-forwarded-proto'] || 'https';
   const redirectUri = `${proto}://${host}/api/whoop-callback`;
-  const state = Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
+  // State carries the user id (signed-ish) so callback knows which user to associate
+  const state = `${user.id}:${Math.random().toString(36).slice(2, 12)}${Date.now().toString(36)}`;
 
   const url = new URL(WHOOP_AUTH_URL);
   url.searchParams.set('response_type', 'code');
@@ -53,20 +57,16 @@ async function handleConnect(req, res) {
   return res.json({ url: url.toString() });
 }
 
-async function handleSync(req, res) {
-  const isCron = req.headers['x-vercel-cron'] === '1' ||
-                 (process.env.CRON_SECRET && req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`);
-  if (!isCron && !checkAuth(req)) return notFound(res);
-
-  const lookbackDays = parseInt(req.query?.days) || 7;
+// Sync for a single user. Returns { synced, dates } or { error }.
+async function syncForUser(userId, lookbackDays) {
   const end = new Date();
   const start = new Date(end.getTime() - lookbackDays * 86_400_000);
 
   let token;
   try {
-    token = await getValidAccessToken();
+    token = await getValidAccessToken(userId);
   } catch (e) {
-    return res.status(503).json({ error: e.message });
+    return { error: e.message };
   }
 
   const url = new URL(`${WHOOP_API_BASE}/v2/cycle`);
@@ -80,8 +80,8 @@ async function handleSync(req, res) {
     await db.from('whoop_auth').update({
       last_sync_at: new Date().toISOString(),
       last_sync_status: `error: ${r.status}`,
-    }).eq('id', 1);
-    return res.status(502).json({ error: `Whoop API ${r.status}: ${err}` });
+    }).eq('user_id', userId);
+    return { error: `Whoop API ${r.status}: ${err}` };
   }
 
   const data = await r.json();
@@ -90,26 +90,51 @@ async function handleSync(req, res) {
   for (const cyc of cycles) {
     if (cyc.score_state !== 'SCORED' || !cyc.score) continue;
     upserts.push({
+      user_id: userId,
       date: cycleToDate(cyc),
       strain: Math.round(cyc.score.strain * 10) / 10,
       burned: Math.round(cyc.score.kilojoule / 4.184),
     });
   }
   if (upserts.length) {
-    const { error } = await db.from('whoop').upsert(upserts, { onConflict: 'date' });
+    const { error } = await db.from('whoop').upsert(upserts, { onConflict: 'user_id,date' });
     if (error) {
       await db.from('whoop_auth').update({
         last_sync_at: new Date().toISOString(),
         last_sync_status: `db error: ${error.message}`,
-      }).eq('id', 1);
-      return res.status(500).json({ error: error.message });
+      }).eq('user_id', userId);
+      return { error: error.message };
     }
   }
   await db.from('whoop_auth').update({
     last_sync_at: new Date().toISOString(),
     last_sync_status: `ok: synced ${upserts.length} day(s)`,
-  }).eq('id', 1);
-  return res.json({ ok: true, synced: upserts.length, dates: upserts.map(u => u.date) });
+  }).eq('user_id', userId);
+  return { synced: upserts.length, dates: upserts.map(u => u.date) };
+}
+
+async function handleSync(req, res) {
+  const isCron = req.headers['x-vercel-cron'] === '1' ||
+                 (process.env.CRON_SECRET && req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`);
+  const lookbackDays = parseInt(req.query?.days) || 7;
+
+  if (isCron) {
+    // Sync every user that has whoop_auth
+    const { data: connectedUsers } = await db.from('whoop_auth').select('user_id');
+    const results = [];
+    for (const row of connectedUsers || []) {
+      const r = await syncForUser(row.user_id, lookbackDays);
+      results.push({ user_id: row.user_id, ...r });
+    }
+    return res.json({ ok: true, users: results.length, results });
+  }
+
+  // Manual sync = just the logged-in user
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const r = await syncForUser(user.id, lookbackDays);
+  if (r.error) return res.status(502).json(r);
+  return res.json({ ok: true, ...r });
 }
 
 module.exports = async function handler(req, res) {

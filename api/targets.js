@@ -1,24 +1,31 @@
-const { checkAuth, notFound } = require('./_auth');
+const { requireUser } = require('./_auth');
 const { db } = require('./_db');
 
+const DEFAULTS = { calories: 2175, protein: 168, carbs: 185, fat: 68 };
+
 module.exports = async function handler(req, res) {
-  if (!checkAuth(req)) return notFound(res);
+  const user = await requireUser(req, res);
+  if (!user) return;
 
   if (req.method === 'GET') {
-    const { data, error } = await db.from('targets').select('calories, protein, carbs, fat').eq('id', 1).single();
-    if (error) return res.status(500).json({ error: error.message });
-    return res.json(data);
+    const { data } = await db
+      .from('targets')
+      .select('calories, protein, carbs, fat')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    // If user has no targets yet, return defaults (no error)
+    return res.json(data || DEFAULTS);
   }
 
   if (req.method === 'POST') {
-    const { calories, protein, carbs, fat } = req.body || {};
-    const { error } = await db.from('targets').upsert({
-      id: 1,
-      calories: parseInt(calories) || 0,
-      protein: parseInt(protein) || 0,
-      carbs: parseInt(carbs) || 0,
-      fat: parseInt(fat) || 0,
-    });
+    const row = {
+      user_id: user.id,
+      calories: parseInt(req.body.calories) || 0,
+      protein: parseInt(req.body.protein) || 0,
+      carbs: parseInt(req.body.carbs) || 0,
+      fat: parseInt(req.body.fat) || 0,
+    };
+    const { error } = await db.from('targets').upsert(row, { onConflict: 'user_id' });
     if (error) return res.status(500).json({ error: error.message });
     return res.json({ ok: true });
   }

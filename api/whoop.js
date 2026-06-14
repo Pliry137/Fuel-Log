@@ -1,13 +1,16 @@
-const { checkAuth, notFound } = require('./_auth');
+const { requireUser } = require('./_auth');
 const { db } = require('./_db');
 
 module.exports = async function handler(req, res) {
-  if (!checkAuth(req)) return notFound(res);
+  const user = await requireUser(req, res);
+  if (!user) return;
 
   if (req.method === 'GET') {
-    const { data, error } = await db.from('whoop').select('*');
+    const { data, error } = await db
+      .from('whoop')
+      .select('date, recovery, strain, sleep, burned')
+      .eq('user_id', user.id);
     if (error) return res.status(500).json({ error: error.message });
-    // Return as { "YYYY-MM-DD": { recovery, strain, sleep, burned } } to match old shape
     const obj = {};
     for (const row of data) {
       const { date, ...rest } = row;

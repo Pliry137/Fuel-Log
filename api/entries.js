@@ -1,11 +1,16 @@
-const { checkAuth, notFound } = require('./_auth');
+const { requireUser } = require('./_auth');
 const { db } = require('./_db');
 
 module.exports = async function handler(req, res) {
-  if (!checkAuth(req)) return notFound(res);
+  const user = await requireUser(req, res);
+  if (!user) return;
 
   if (req.method === 'GET') {
-    const { data, error } = await db.from('entries').select('*').order('date').order('time');
+    const { data, error } = await db
+      .from('entries')
+      .select('id, date, time, name, calories, protein, carbs, fat')
+      .eq('user_id', user.id)
+      .order('date').order('time');
     if (error) return res.status(500).json({ error: error.message });
     return res.json(data);
   }
@@ -22,6 +27,7 @@ module.exports = async function handler(req, res) {
     const baseId = Date.now();
     const rows = items.map((it, i) => ({
       id: baseId + i,
+      user_id: user.id,
       date: it.date || defaults.date,
       time: it.time || defaults.time,
       name: it.name || '',
@@ -30,7 +36,7 @@ module.exports = async function handler(req, res) {
       carbs: parseInt(it.carbs) || 0,
       fat: parseInt(it.fat) || 0,
     }));
-    const { data, error } = await db.from('entries').insert(rows).select();
+    const { data, error } = await db.from('entries').insert(rows).select('id, date, time, name, calories, protein, carbs, fat');
     if (error) return res.status(500).json({ error: error.message });
     return res.json(Array.isArray(body) ? data : data[0]);
   }

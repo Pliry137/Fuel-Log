@@ -9,9 +9,7 @@ module.exports.WHOOP_AUTH_URL = WHOOP_AUTH_URL;
 module.exports.SCOPES = SCOPES;
 module.exports.WHOOP_API_BASE = WHOOP_API_BASE;
 
-// Exchange auth code for access + refresh tokens, OR refresh an existing token.
-// `params` is either { grant_type:'authorization_code', code, redirect_uri }
-//          or       { grant_type:'refresh_token', refresh_token, scope:'offline' }
+// Exchange auth code for tokens, or refresh.
 module.exports.exchangeToken = async (params) => {
   const body = new URLSearchParams({
     client_id: process.env.WHOOP_CLIENT_ID,
@@ -27,20 +25,23 @@ module.exports.exchangeToken = async (params) => {
     const err = await r.text();
     throw new Error(`Whoop token exchange failed: ${r.status} ${err}`);
   }
-  return r.json(); // { access_token, refresh_token, expires_in, scope, token_type }
+  return r.json();
 };
 
-// Return a valid access token, refreshing if expired (or expiring within 60s).
-module.exports.getValidAccessToken = async () => {
-  const { data: auth, error } = await db.from('whoop_auth').select('*').eq('id', 1).maybeSingle();
+// Get a valid access token for the given userId (refresh if expired).
+module.exports.getValidAccessToken = async (userId) => {
+  const { data: auth, error } = await db
+    .from('whoop_auth')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
   if (error) throw new Error(`whoop_auth read failed: ${error.message}`);
-  if (!auth) throw new Error('Whoop not connected. Visit /api/whoop-connect first.');
+  if (!auth) throw new Error('Whoop not connected for this user.');
 
   const now = Date.now();
   const expiresAt = new Date(auth.expires_at).getTime();
   if (expiresAt > now + 60_000) return auth.access_token;
 
-  // Refresh
   const tokens = await module.exports.exchangeToken({
     grant_type: 'refresh_token',
     refresh_token: auth.refresh_token,
@@ -51,6 +52,6 @@ module.exports.getValidAccessToken = async () => {
     refresh_token: tokens.refresh_token,
     expires_at: new Date(now + tokens.expires_in * 1000).toISOString(),
     updated_at: new Date().toISOString(),
-  }).eq('id', 1);
+  }).eq('user_id', userId);
   return tokens.access_token;
 };

@@ -16,7 +16,10 @@ module.exports = async function handler(req, res) {
     return res.status(400).send('State mismatch — possible CSRF. Try connecting again.');
   }
 
-  // Exchange code for tokens
+  // State is "{userId}:{random}" — extract the user_id
+  const userId = state.split(':')[0];
+  if (!userId || userId.length < 8) return res.status(400).send('Invalid state format');
+
   const host = req.headers['x-forwarded-host'] || req.headers.host;
   const proto = req.headers['x-forwarded-proto'] || 'https';
   const redirectUri = `${proto}://${host}/api/whoop-callback`;
@@ -38,14 +41,20 @@ module.exports = async function handler(req, res) {
   }
 
   await db.from('whoop_auth').upsert({
-    id: 1,
+    user_id: userId,
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token,
     expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
     updated_at: new Date().toISOString(),
-  });
+  }, { onConflict: 'user_id' });
 
-  // Clear the state cookie + redirect home
+  // Also flip the user's has_whoop preference on
+  const { data: user } = await db.from('users').select('preferences').eq('id', userId).maybeSingle();
+  if (user) {
+    const newPrefs = { ...(user.preferences || {}), has_whoop: true, burn_method: 'whoop' };
+    await db.from('users').update({ preferences: newPrefs }).eq('id', userId);
+  }
+
   res.setHeader('Set-Cookie', 'whoop_oauth_state=; Path=/; Max-Age=0');
   res.setHeader('Location', '/?whoop=connected');
   return res.status(302).end();

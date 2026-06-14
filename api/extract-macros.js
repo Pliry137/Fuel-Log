@@ -1,4 +1,4 @@
-const { checkAuth, notFound } = require('./_auth');
+const { requireUser } = require('./_auth');
 const { db } = require('./_db');
 
 const RATE_LIMIT_PER_MIN = 30; // max AI calls per IP per minute
@@ -21,7 +21,8 @@ async function checkRateLimit(req) {
 }
 
 async function handler(req, res) {
-  if (!checkAuth(req)) return notFound(res);
+  const user = await requireUser(req, res);
+  if (!user) return;
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).end();

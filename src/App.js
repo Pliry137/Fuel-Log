@@ -52,6 +52,109 @@ const fileToDataUrl = (file) => new Promise((resolve, reject) => {
   r.readAsDataURL(file);
 });
 
+// First-time setup wizard. Captures daily targets + burn-tracking preference.
+function SetupWizard({ me, onDone }) {
+  const [step, setStep] = useState(1);
+  const [targets, setTargetsLocal] = useState({ calories: 2000, protein: 150, carbs: 200, fat: 65 });
+  const [burnMethod, setBurnMethod] = useState("none"); // whoop | manual | tdee | none
+  const [tdeeEstimate, setTdeeEstimate] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await fetch("/api/targets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(targets),
+        credentials: "same-origin",
+      });
+      const prefs = {
+        setup_complete: true,
+        has_whoop: burnMethod === "whoop",
+        burn_method: burnMethod,
+      };
+      if (burnMethod === "tdee" && tdeeEstimate) prefs.daily_burn_estimate = parseInt(tdeeEstimate) || 0;
+      await fetch("/api/auth?action=preferences", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(prefs),
+        credentials: "same-origin",
+      });
+      // If user picked Whoop, kick straight into OAuth
+      if (burnMethod === "whoop") {
+        const r = await fetch("/api/whoop-mgmt?action=connect", { credentials: "same-origin" });
+        const data = await r.json();
+        if (data.url) { window.location.href = data.url; return; }
+      }
+      onDone();
+    } catch (e) {
+      alert(`Save failed: ${e.message}`);
+    }
+    setSaving(false);
+  };
+
+  const cardStyle = { background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 12, padding: 24, maxWidth: 480, width: "100%" };
+  const labelStyle = { fontSize: 10, color: "#9a9a9a", letterSpacing: 2, marginBottom: 6 };
+  const inputStyle = { width: "100%", background: "#faf7f2", border: "1px solid #dcd5cf", borderRadius: 6, padding: "10px 12px", fontFamily: "inherit", fontSize: 14, color: "#2a2a2a", marginBottom: 12 };
+  const btnStyle = (primary) => ({ flex: 1, background: primary ? "#a8c078" : "#ffffff", color: primary ? "#111" : "#9a9a9a", border: primary ? "none" : "1px solid #dcd5cf", borderRadius: 6, padding: "10px", fontFamily: "inherit", fontSize: 12, cursor: "pointer", letterSpacing: 1, textTransform: "uppercase" });
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#faf7f2", color: "#2a2a2a", fontFamily: "'DM Mono', 'Courier New', monospace", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap'); input:focus { outline: none; border-color: #a8c078 !important; }`}</style>
+      <div style={cardStyle}>
+        <div style={{ fontSize: 10, color: "#a8c078", letterSpacing: 3, marginBottom: 6 }}>FUEL LOG · WELCOME</div>
+        <div style={{ fontSize: 18, fontWeight: 500, marginBottom: 4 }}>Hi {me.name}, let's set up your account.</div>
+        <div style={{ fontSize: 11, color: "#9a9a9a", marginBottom: 20 }}>Step {step} of 2</div>
+
+        {step === 1 && (
+          <>
+            <div style={{ fontSize: 14, marginBottom: 16 }}>What are your daily targets?</div>
+            {[["Calories", "calories"], ["Protein (g)", "protein"], ["Carbs (g)", "carbs"], ["Fat (g)", "fat"]].map(([label, key]) => (
+              <div key={key}>
+                <div style={labelStyle}>{label.toUpperCase()}</div>
+                <input type="number" value={targets[key]} onChange={e => setTargetsLocal(t => ({ ...t, [key]: parseInt(e.target.value) || 0 }))} style={inputStyle} />
+              </div>
+            ))}
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button onClick={() => setStep(2)} style={btnStyle(true)}>Next →</button>
+            </div>
+          </>
+        )}
+
+        {step === 2 && (
+          <>
+            <div style={{ fontSize: 14, marginBottom: 16 }}>How do you track calories burned?</div>
+            {[
+              ["whoop", "Whoop (auto-sync via API)"],
+              ["manual", "I'll enter it manually each day"],
+              ["tdee", "Use a fixed daily estimate (TDEE)"],
+              ["none", "Don't track burn"],
+            ].map(([val, label]) => (
+              <div key={val} onClick={() => setBurnMethod(val)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: burnMethod === val ? "#eaf2dc" : "#faf7f2", border: `1px solid ${burnMethod === val ? "#a8c078" : "#dcd5cf"}`, borderRadius: 8, cursor: "pointer", marginBottom: 8, fontSize: 13 }}>
+                <span style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${burnMethod === val ? "#a8c078" : "#dcd5cf"}`, background: burnMethod === val ? "#a8c078" : "transparent" }} />
+                {label}
+              </div>
+            ))}
+            {burnMethod === "tdee" && (
+              <div style={{ marginTop: 12 }}>
+                <div style={labelStyle}>YOUR DAILY ESTIMATE (KCAL)</div>
+                <input type="number" value={tdeeEstimate} onChange={e => setTdeeEstimate(e.target.value)} placeholder="e.g. 2400" style={inputStyle} />
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button onClick={() => setStep(1)} style={btnStyle(false)}>← Back</button>
+              <button onClick={save} disabled={saving || (burnMethod === "tdee" && !tdeeEstimate)} style={btnStyle(true)}>
+                {saving ? "Saving…" : (burnMethod === "whoop" ? "Save & connect Whoop" : "Save & finish")}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function FoodTracker() {
   const today = new Date().toISOString().split("T")[0];
   const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
@@ -60,6 +163,7 @@ export default function FoodTracker() {
   const [favorites, setFavorites] = useState([]);
   const [whoopData, setWhoopData] = useState({});
   const [whoopStatus, setWhoopStatus] = useState(null);
+  const [me, setMe] = useState(null);  // { id, name, preferences }
   const [targets, setTargets] = useState({ calories: 2175, protein: 168, carbs: 185, fat: 68 });
   const [showWhoopPrompt, setShowWhoopPrompt] = useState(false);
   const [whoopDate, setWhoopDate] = useState(yesterday);
@@ -86,7 +190,8 @@ export default function FoodTracker() {
 
     const loadAll = async (isInitial = false) => {
       try {
-        const [e, w, t, f, ws] = await Promise.all([
+        const [u, e, w, t, f, ws] = await Promise.all([
+          apiFetch(`${API}/api/auth?action=me`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
           apiFetch(`${API}/api/entries`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
           apiFetch(`${API}/api/whoop`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
           apiFetch(`${API}/api/targets`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
@@ -94,6 +199,7 @@ export default function FoodTracker() {
           apiFetch(`${API}/api/whoop-mgmt?action=status`).then(r => r.ok ? r.json() : { connected: false }),
         ]);
         if (cancelled) return;
+        setMe(u);
         setEntries(e);
         setWhoopData(w);
         setTargets(t);
@@ -353,6 +459,11 @@ export default function FoodTracker() {
     </div>
   );
 
+  // Setup wizard for first-time users
+  if (me && !me.preferences?.setup_complete) {
+    return <SetupWizard me={me} onDone={() => window.location.reload()} />;
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: "#faf7f2", color: "#2a2a2a", fontFamily: "'DM Mono', 'Courier New', monospace", padding: "24px 16px", boxSizing: "border-box", maxWidth: 520, margin: "0 auto" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap'); * { box-sizing: border-box; } input:focus { outline: none; border-color: #a8c078 !important; }`}</style>
@@ -447,7 +558,7 @@ export default function FoodTracker() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 8 }}>
           <div style={{ fontSize: 10, color: "#dcd5cf", letterSpacing: 1 }}>TARGETS: {targets.calories} · {targets.protein}P · {targets.carbs}C · {targets.fat}F</div>
           <div style={{ display: "flex", gap: 6 }}>
-            {whoopStatus && !whoopStatus.connected && (
+            {me?.preferences?.has_whoop && whoopStatus && !whoopStatus.connected && (
               <button onClick={async () => {
                 const r = await apiFetch(`${API}/api/whoop-mgmt?action=connect`);
                 const data = await r.json();
@@ -455,7 +566,7 @@ export default function FoodTracker() {
                 else alert(data.error || "Failed to start Whoop OAuth");
               }} style={{ background: "#eaf2dc", border: "1px solid #c8d8a8", color: "#3a4a1a", borderRadius: 6, padding: "4px 10px", fontFamily: "inherit", fontSize: 9, cursor: "pointer", letterSpacing: 1 }}>CONNECT WHOOP</button>
             )}
-            {whoopStatus && whoopStatus.connected && (
+            {me?.preferences?.has_whoop && whoopStatus && whoopStatus.connected && (
               <button onClick={async () => {
                 const r = await apiFetch(`${API}/api/whoop-mgmt?action=sync&days=7`);
                 const data = await r.json();
@@ -464,7 +575,9 @@ export default function FoodTracker() {
               }} title={whoopStatus.last_sync_at ? `Last sync: ${new Date(whoopStatus.last_sync_at).toLocaleString()} — ${whoopStatus.last_sync_status}` : "Never synced yet"}
                 style={{ background: "none", border: "1px solid #dcd5cf", color: "#9a9a9a", borderRadius: 6, padding: "4px 10px", fontFamily: "inherit", fontSize: 9, cursor: "pointer", letterSpacing: 1 }}>SYNC WHOOP</button>
             )}
-            <button onClick={() => openWhoopPrompt(selectedDate)} style={{ background: "none", border: "1px solid #dcd5cf", color: "#9a9a9a", borderRadius: 6, padding: "4px 10px", fontFamily: "inherit", fontSize: 9, cursor: "pointer", letterSpacing: 1 }}>+ MANUAL</button>
+            {me?.preferences?.burn_method && me.preferences.burn_method !== "none" && me.preferences.burn_method !== "whoop" && (
+              <button onClick={() => openWhoopPrompt(selectedDate)} style={{ background: "none", border: "1px solid #dcd5cf", color: "#9a9a9a", borderRadius: 6, padding: "4px 10px", fontFamily: "inherit", fontSize: 9, cursor: "pointer", letterSpacing: 1 }}>+ MANUAL</button>
+            )}
           </div>
         </div>
 
