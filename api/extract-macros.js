@@ -1,4 +1,24 @@
 const { checkAuth, notFound } = require('./_auth');
+const { db } = require('./_db');
+
+const RATE_LIMIT_PER_MIN = 30; // max AI calls per IP per minute
+
+async function checkRateLimit(req) {
+  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.headers['x-real-ip'] || 'unknown';
+  const now = new Date();
+  const oneMinAgo = new Date(now.getTime() - 60_000);
+
+  const { data: existing } = await db.from('ai_rate_limits').select('*').eq('ip', ip).maybeSingle();
+  if (existing && new Date(existing.window_start) > oneMinAgo) {
+    if (existing.count >= RATE_LIMIT_PER_MIN) {
+      return { ok: false, retryAfter: Math.ceil((new Date(existing.window_start).getTime() + 60_000 - now.getTime()) / 1000) };
+    }
+    await db.from('ai_rate_limits').update({ count: existing.count + 1 }).eq('ip', ip);
+  } else {
+    await db.from('ai_rate_limits').upsert({ ip, window_start: now.toISOString(), count: 1 });
+  }
+  return { ok: true };
+}
 
 async function handler(req, res) {
   if (!checkAuth(req)) return notFound(res);
@@ -8,6 +28,13 @@ async function handler(req, res) {
   }
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.status(503).json({ error: 'AI extraction not configured (missing ANTHROPIC_API_KEY)' });
+  }
+
+  // Rate limit BEFORE calling the (expensive) Anthropic API
+  const rl = await checkRateLimit(req);
+  if (!rl.ok) {
+    res.setHeader('Retry-After', String(rl.retryAfter));
+    return res.status(429).json({ error: `Rate limit: ${RATE_LIMIT_PER_MIN}/min. Wait ${rl.retryAfter}s.` });
   }
 
   const { text, image } = req.body || {};
