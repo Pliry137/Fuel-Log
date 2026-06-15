@@ -38,3 +38,4 @@ Thumbs.db
 
 # Migration artifacts (one-time, no need to commit)
 migration/
+.admin-token

@@ -86,16 +86,24 @@ async function syncForUser(userId, lookbackDays) {
 
   const data = await r.json();
   const cycles = data.records || [];
-  const upserts = [];
+  // Dedupe by date — Whoop can return multiple cycles per calendar day
+  // (e.g. a cycle ending Tuesday and a partial cycle starting Tuesday).
+  // Keep the cycle with the largest strain (the "primary" daily cycle).
+  const byDate = {};
   for (const cyc of cycles) {
     if (cyc.score_state !== 'SCORED' || !cyc.score) continue;
-    upserts.push({
+    const date = cycleToDate(cyc);
+    const row = {
       user_id: userId,
-      date: cycleToDate(cyc),
+      date,
       strain: Math.round(cyc.score.strain * 10) / 10,
       burned: Math.round(cyc.score.kilojoule / 4.184),
-    });
+    };
+    if (!byDate[date] || row.strain > byDate[date].strain) {
+      byDate[date] = row;
+    }
   }
+  const upserts = Object.values(byDate);
   if (upserts.length) {
     const { error } = await db.from('whoop').upsert(upserts, { onConflict: 'user_id,date' });
     if (error) {

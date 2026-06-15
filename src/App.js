@@ -210,9 +210,26 @@ export default function FoodTracker() {
         setTokenError("");
         if (isInitial && !initialLoadDone.current) {
           initialLoadDone.current = true;
-          if (!w[yesterday] || !w[yesterday].burned) {
-            setWhoopDate(yesterday);
-            setTimeout(() => { if (!cancelled) setShowWhoopPrompt(true); }, 600);
+          const burnMethod = u?.preferences?.burn_method;
+          const yesterdayMissing = !w[yesterday] || !w[yesterday].burned;
+          if (yesterdayMissing) {
+            if (burnMethod === "whoop") {
+              // Silent auto-sync — don't bug the user with a prompt
+              apiFetch(`${API}/api/whoop-mgmt?action=sync&days=3`)
+                .then(r => r.json())
+                .then(res => {
+                  if (res.ok) {
+                    // Refresh whoop data after sync
+                    apiFetch(`${API}/api/whoop`).then(r => r.json()).then(setWhoopData);
+                  }
+                })
+                .catch(() => {});
+            } else if (burnMethod === "manual") {
+              // Show the manual entry prompt as before
+              setWhoopDate(yesterday);
+              setTimeout(() => { if (!cancelled) setShowWhoopPrompt(true); }, 600);
+            }
+            // burn_method === "none" or "tdee" → no prompt, no sync
           }
         }
       } catch (err) {
