@@ -52,6 +52,135 @@ const fileToDataUrl = (file) => new Promise((resolve, reject) => {
   r.readAsDataURL(file);
 });
 
+// Portion-scaling modal for favorites. Lets the user pick the amount before logging,
+// and edit the favorite's unit/base_amount/macros inline.
+function FavoritePortionModal({ state, setState, onLog, onSave }) {
+  const { fav, editing } = state;
+  const [amount, setAmount] = useState(String(fav.base_amount || 1));
+  const [editing_, setEditing] = useState(editing);
+  const [form, setForm] = useState({
+    name: fav.name,
+    unit: fav.unit || "serving",
+    base_amount: String(fav.base_amount || 1),
+    calories: String(fav.calories),
+    protein: String(fav.protein),
+    carbs: String(fav.carbs),
+    fat: String(fav.fat),
+  });
+  const [saving, setSaving] = useState(false);
+
+  const base = parseFloat(fav.base_amount) || 1;
+  const amt = parseFloat(amount) || 0;
+  const scale = amt / base;
+  const scaled = {
+    calories: Math.round(fav.calories * scale),
+    protein: Math.round(fav.protein * scale),
+    carbs: Math.round(fav.carbs * scale),
+    fat: Math.round(fav.fat * scale),
+  };
+
+  const overlay = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 24 };
+  const card = { background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 16, padding: 22, width: "100%", maxWidth: 380 };
+  const lbl = { fontSize: 10, color: "#9a9a9a", letterSpacing: 2, marginBottom: 4 };
+  const ip = { width: "100%", background: "#faf7f2", border: "1px solid #dcd5cf", borderRadius: 6, padding: "10px 12px", fontFamily: "inherit", fontSize: 14, color: "#2a2a2a" };
+  const btn = (primary) => ({ flex: 1, background: primary ? "#a8c078" : "#ffffff", color: primary ? "#111" : "#7a7a7a", border: primary ? "none" : "1px solid #dcd5cf", borderRadius: 8, padding: "10px", fontFamily: "inherit", fontSize: 12, cursor: "pointer", letterSpacing: 1, textTransform: "uppercase" });
+
+  const close = () => setState(null);
+
+  if (!editing_) {
+    const unitLabel = (fav.unit && fav.unit !== "serving") ? fav.unit : (fav.base_amount > 1 ? "servings" : "serving");
+    return (
+      <div style={overlay} onClick={close}>
+        <div style={card} onClick={(e) => e.stopPropagation()}>
+          <div style={{ fontSize: 10, color: "#a8c078", letterSpacing: 3, marginBottom: 6 }}>LOG FAVORITE</div>
+          <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 4 }}>{fav.name}</div>
+          <div style={{ fontSize: 11, color: "#9a9a9a", marginBottom: 16 }}>
+            {fav.calories} cal · {fav.protein}p / {fav.carbs}c / {fav.fat}f per {fav.base_amount || 1} {unitLabel}
+          </div>
+
+          <div style={lbl}>AMOUNT ({unitLabel.toUpperCase()})</div>
+          <input type="number" step="any" autoFocus value={amount} onChange={(e) => setAmount(e.target.value)} style={ip} />
+
+          <div style={{ background: "#f5f1ec", borderRadius: 8, padding: 12, margin: "14px 0", fontSize: 13 }}>
+            <div style={{ fontSize: 10, color: "#9a9a9a", letterSpacing: 1, marginBottom: 4 }}>WILL LOG</div>
+            <div><strong style={{ color: "#a8c078" }}>{scaled.calories}</strong> cal · {scaled.protein}p / {scaled.carbs}c / {scaled.fat}f</div>
+          </div>
+
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={close} style={btn(false)}>Cancel</button>
+            <button onClick={() => onLog(fav, amt)} disabled={!amt} style={btn(true)}>Log</button>
+          </div>
+
+          <div style={{ textAlign: "center", marginTop: 12 }}>
+            <button onClick={() => setEditing(true)} style={{ background: "none", border: "none", color: "#9a9a9a", fontSize: 11, cursor: "pointer", textDecoration: "underline" }}>edit favorite</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Edit mode
+  return (
+    <div style={overlay} onClick={close}>
+      <div style={card} onClick={(e) => e.stopPropagation()}>
+        <div style={{ fontSize: 10, color: "#a8c078", letterSpacing: 3, marginBottom: 12 }}>EDIT FAVORITE</div>
+
+        <div style={lbl}>NAME</div>
+        <input value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} style={{ ...ip, marginBottom: 10 }} />
+
+        <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ flex: 2 }}>
+            <div style={lbl}>BASE AMOUNT</div>
+            <input type="number" step="any" value={form.base_amount} onChange={(e) => setForm(f => ({ ...f, base_amount: e.target.value }))} style={{ ...ip, marginBottom: 10 }} />
+          </div>
+          <div style={{ flex: 3 }}>
+            <div style={lbl}>UNIT</div>
+            <select value={form.unit} onChange={(e) => setForm(f => ({ ...f, unit: e.target.value }))} style={{ ...ip, marginBottom: 10 }}>
+              <option value="serving">serving</option>
+              <option value="g">g</option>
+              <option value="oz">oz</option>
+              <option value="cup">cup</option>
+              <option value="tbsp">tbsp</option>
+              <option value="tsp">tsp</option>
+              <option value="piece">piece</option>
+              <option value="slice">slice</option>
+            </select>
+          </div>
+        </div>
+
+        <div style={{ fontSize: 11, color: "#9a9a9a", marginBottom: 10 }}>Macros below are PER {form.base_amount} {form.unit}.</div>
+
+        {[["Calories", "calories"], ["Protein (g)", "protein"], ["Carbs (g)", "carbs"], ["Fat (g)", "fat"]].map(([label, key]) => (
+          <div key={key}>
+            <div style={lbl}>{label.toUpperCase()}</div>
+            <input type="number" value={form[key]} onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))} style={{ ...ip, marginBottom: 8 }} />
+          </div>
+        ))}
+
+        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          <button onClick={() => setEditing(false)} style={btn(false)}>Cancel</button>
+          <button disabled={saving} onClick={async () => {
+            setSaving(true);
+            const updated = await onSave(fav, {
+              name: form.name,
+              unit: form.unit,
+              base_amount: form.base_amount,
+              calories: form.calories,
+              protein: form.protein,
+              carbs: form.carbs,
+              fat: form.fat,
+            });
+            setSaving(false);
+            // Reset the amount default to the new base + go back to log mode
+            setAmount(String(updated.base_amount || 1));
+            setEditing(false);
+          }} style={btn(true)}>{saving ? "Saving…" : "Save"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // First-time setup wizard. Captures daily targets + burn-tracking preference.
 function SetupWizard({ me, onDone }) {
   const [step, setStep] = useState(1);
@@ -164,6 +293,7 @@ export default function FoodTracker() {
   const [whoopData, setWhoopData] = useState({});
   const [whoopStatus, setWhoopStatus] = useState(null);
   const [me, setMe] = useState(null);  // { id, name, preferences }
+  const [favoriteModal, setFavoriteModal] = useState(null); // { fav, editing }
   const [targets, setTargets] = useState({ calories: 2175, protein: 168, carbs: 185, fat: 68 });
   const [showWhoopPrompt, setShowWhoopPrompt] = useState(false);
   const [whoopDate, setWhoopDate] = useState(yesterday);
@@ -375,13 +505,38 @@ export default function FoodTracker() {
     }
   };
 
-  const logFavorite = async (fav) => {
+  const openFavoriteModal = (fav) => setFavoriteModal({ fav, editing: false });
+
+  const logScaledFavorite = async (fav, amount) => {
+    const base = fav.base_amount || 1;
+    const scale = (parseFloat(amount) || 0) / base;
     const now = new Date();
     const time = now.toTimeString().slice(0, 5);
-    const payload = { date: selectedDate, time, name: fav.name, calories: fav.calories, protein: fav.protein, carbs: fav.carbs, fat: fav.fat };
+    const unit = fav.unit && fav.unit !== "serving" ? ` ${amount}${fav.unit}` : "";
+    const payload = {
+      date: selectedDate,
+      time,
+      name: fav.name + unit,
+      calories: Math.round(fav.calories * scale),
+      protein: Math.round(fav.protein * scale),
+      carbs: Math.round(fav.carbs * scale),
+      fat: Math.round(fav.fat * scale),
+    };
     const res = await apiFetch(`${API}/api/entries`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     const entry = await res.json();
     setEntries(prev => [...prev, entry]);
+    setFavoriteModal(null);
+  };
+
+  const updateFavorite = async (fav, updates) => {
+    const res = await apiFetch(`${API}/api/favorites/${fav.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    const updated = await res.json();
+    setFavorites(prev => prev.map(f => f.id === fav.id ? updated : f));
+    return updated;
   };
 
   const handleAdd = async () => {
@@ -481,6 +636,15 @@ export default function FoodTracker() {
   return (
     <div style={{ minHeight: "100vh", background: "#faf7f2", color: "#2a2a2a", fontFamily: "'DM Mono', 'Courier New', monospace", padding: "24px 16px", boxSizing: "border-box", maxWidth: 520, margin: "0 auto" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap'); * { box-sizing: border-box; } input:focus { outline: none; border-color: #a8c078 !important; }`}</style>
+
+      {favoriteModal && (
+        <FavoritePortionModal
+          state={favoriteModal}
+          setState={setFavoriteModal}
+          onLog={logScaledFavorite}
+          onSave={updateFavorite}
+        />
+      )}
 
       {/* Whoop prompt */}
       {showWhoopPrompt && (
@@ -649,7 +813,8 @@ export default function FoodTracker() {
                 <div style={{ fontSize: 10, color: "#9a9a9a", marginBottom: 6, letterSpacing: 1 }}>FAVORITES — TAP TO LOG</div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {favorites.map(fav => (
-                    <button key={fav.id} onClick={() => logFavorite(fav)} title={`${fav.calories} cal · ${fav.protein}p / ${fav.carbs}c / ${fav.fat}f`}
+                    <button key={fav.id} onClick={() => openFavoriteModal(fav)}
+                      title={`${fav.calories} cal per ${fav.base_amount || 1}${fav.unit && fav.unit !== "serving" ? fav.unit : " serving"}`}
                       style={{ background: "#eaf2dc", border: "1px solid #c8d8a8", color: "#3a4a1a", borderRadius: 16, padding: "5px 10px", fontFamily: "inherit", fontSize: 11, cursor: "pointer" }}>
                       {fav.name} <span style={{ color: "#7a8a5a", fontSize: 10 }}>· {fav.calories}</span>
                     </button>

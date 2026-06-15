@@ -8,7 +8,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'GET') {
     const { data, error } = await db
       .from('favorites')
-      .select('id, name, calories, protein, carbs, fat')
+      .select('id, name, calories, protein, carbs, fat, unit, base_amount')
       .eq('user_id', user.id)
       .order('created_at');
     if (error) return res.status(500).json({ error: error.message });
@@ -36,8 +36,10 @@ module.exports = async function handler(req, res) {
       protein: parseInt(req.body.protein) || 0,
       carbs: parseInt(req.body.carbs) || 0,
       fat: parseInt(req.body.fat) || 0,
+      unit: (req.body.unit || 'serving').trim(),
+      base_amount: parseFloat(req.body.base_amount) || 1,
     };
-    const { data, error } = await db.from('favorites').insert(fav).select('id, name, calories, protein, carbs, fat').single();
+    const { data, error } = await db.from('favorites').insert(fav).select('id, name, calories, protein, carbs, fat, unit, base_amount').single();
     if (error) return res.status(500).json({ error: error.message });
     return res.json(data);
   }
