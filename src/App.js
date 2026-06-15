@@ -834,7 +834,7 @@ export default function FoodTracker() {
                   <input type="file" accept="image/*" capture="environment" onChange={handlePhotoUpload} disabled={lookingUp} style={{ display: "none" }} />
                 </label>
               </div>
-              {matchingFoods.length > 0 && form.name && (
+              {matchingFoods.length > 0 && form.name && !form.calories && (
                 <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 6, marginTop: 2, zIndex: 50, boxShadow: "0 4px 12px rgba(0,0,0,0.06)" }}>
                   {matchingFoods.map((f, i) => (
                     <button key={f.id} type="button" onClick={() => setForm(prev => ({ ...prev, name: f.name, calories: String(f.calories), protein: String(f.protein), carbs: String(f.carbs), fat: String(f.fat) }))}
