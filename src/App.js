@@ -211,26 +211,23 @@ export default function FoodTracker() {
         if (isInitial && !initialLoadDone.current) {
           initialLoadDone.current = true;
           const burnMethod = u?.preferences?.burn_method;
-          const yesterdayMissing = !w[yesterday] || !w[yesterday].burned;
-          if (yesterdayMissing) {
-            if (burnMethod === "whoop") {
-              // Silent auto-sync — don't bug the user with a prompt
-              apiFetch(`${API}/api/whoop-mgmt?action=sync&days=3`)
-                .then(r => r.json())
-                .then(res => {
-                  if (res.ok) {
-                    // Refresh whoop data after sync
-                    apiFetch(`${API}/api/whoop`).then(r => r.json()).then(setWhoopData);
-                  }
-                })
-                .catch(() => {});
-            } else if (burnMethod === "manual") {
-              // Show the manual entry prompt as before
-              setWhoopDate(yesterday);
-              setTimeout(() => { if (!cancelled) setShowWhoopPrompt(true); }, 600);
-            }
-            // burn_method === "none" or "tdee" → no prompt, no sync
+          if (burnMethod === "whoop") {
+            // Always sync on app load — pulls latest finalized cycles silently.
+            // (In-progress cycle is skipped server-side, so today's data won't appear until the cycle ends.)
+            apiFetch(`${API}/api/whoop-mgmt?action=sync&days=3`)
+              .then(r => r.json())
+              .then(res => {
+                if (res.ok) {
+                  apiFetch(`${API}/api/whoop`).then(r => r.json()).then(setWhoopData);
+                }
+              })
+              .catch(() => {});
+          } else if (burnMethod === "manual" && (!w[yesterday] || !w[yesterday].burned)) {
+            // Show the manual entry prompt as before
+            setWhoopDate(yesterday);
+            setTimeout(() => { if (!cancelled) setShowWhoopPrompt(true); }, 600);
           }
+          // burn_method === "none" or "tdee" → no prompt, no sync
         }
       } catch (err) {
         if (cancelled) return;

@@ -6,18 +6,21 @@ const { db } = require('./_db');
 const { requireUser } = require('./_auth');
 const { WHOOP_AUTH_URL, SCOPES, getValidAccessToken, WHOOP_API_BASE } = require('./_whoop');
 
-// Use the cycle's START time (= when the user woke up that day).
-// This attributes a cycle to the calendar day it represents in Whoop's UI,
-// even if the user went to sleep after midnight.
+// Parse an offset like "-05:00" → minutes (negative for west of UTC).
+const parseOffset = (off) => {
+  if (!off || off === 'Z') return 0;
+  const m = /^([+-])(\d{2}):?(\d{2})$/.exec(off);
+  if (!m) return 0;
+  return (m[1] === '+' ? 1 : -1) * (parseInt(m[2]) * 60 + parseInt(m[3]));
+};
+
+// Use the cycle's START time in the user's LOCAL timezone (= when they woke up).
+// Whoop reports start in UTC + a timezone_offset; we shift to local before taking the date.
 const cycleToDate = (cycle) => {
-  const iso = cycle.start;
-  const offset = cycle.timezone_offset || 'Z';
-  const localISO = iso.replace('Z', '') + offset;
-  const d = new Date(localISO);
-  const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(d.getUTCDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  const utcMs = new Date(cycle.start).getTime();
+  const offsetMin = parseOffset(cycle.timezone_offset);
+  const local = new Date(utcMs + offsetMin * 60_000);
+  return local.toISOString().slice(0, 10); // "YYYY-MM-DD"
 };
 
 async function handleStatus(req, res) {
