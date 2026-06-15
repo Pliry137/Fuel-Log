@@ -14,13 +14,17 @@ const parseOffset = (off) => {
   return (m[1] === '+' ? 1 : -1) * (parseInt(m[2]) * 60 + parseInt(m[3]));
 };
 
-// Use the cycle's START time in the user's LOCAL timezone (= when they woke up).
-// Whoop reports start in UTC + a timezone_offset; we shift to local before taking the date.
+// Map a Whoop cycle to a single calendar date using the cycle's MIDPOINT
+// in local time. Cycles often straddle midnight (e.g. start 23:30 → end 23:00 next day),
+// so the midpoint correctly attributes them to the day they actually represent.
+// For in-progress cycles (no end), use "now" as the end.
 const cycleToDate = (cycle) => {
-  const utcMs = new Date(cycle.start).getTime();
+  const startMs = new Date(cycle.start).getTime();
+  const endMs = cycle.end ? new Date(cycle.end).getTime() : Date.now();
+  const midUtcMs = (startMs + endMs) / 2;
   const offsetMin = parseOffset(cycle.timezone_offset);
-  const local = new Date(utcMs + offsetMin * 60_000);
-  return local.toISOString().slice(0, 10); // "YYYY-MM-DD"
+  const localMid = new Date(midUtcMs + offsetMin * 60_000);
+  return localMid.toISOString().slice(0, 10);
 };
 
 async function handleStatus(req, res) {
@@ -114,7 +118,9 @@ async function syncForUser(userId, lookbackDays) {
       strain: Math.round(cyc.score.strain * 10) / 10,
       burned: Math.round(cyc.score.kilojoule / 4.184),
     };
-    if (!byDate[date] || row.strain > byDate[date].strain) {
+    // If two cycles map to the same date, keep the one with the most data
+    // (highest kilojoule ≈ most-complete cycle).
+    if (!byDate[date] || row.burned > byDate[date].burned) {
       byDate[date] = row;
     }
   }
