@@ -6,10 +6,13 @@ const { db } = require('./_db');
 const { requireUser } = require('./_auth');
 const { WHOOP_AUTH_URL, SCOPES, getValidAccessToken, WHOOP_API_BASE } = require('./_whoop');
 
+// Use the cycle's START time (= when the user woke up that day).
+// This attributes a cycle to the calendar day it represents in Whoop's UI,
+// even if the user went to sleep after midnight.
 const cycleToDate = (cycle) => {
-  const isoEnd = cycle.end || cycle.start;
+  const iso = cycle.start;
   const offset = cycle.timezone_offset || 'Z';
-  const localISO = isoEnd.replace('Z', '') + offset;
+  const localISO = iso.replace('Z', '') + offset;
   const d = new Date(localISO);
   const y = d.getUTCFullYear();
   const m = String(d.getUTCMonth() + 1).padStart(2, '0');
@@ -92,6 +95,7 @@ async function syncForUser(userId, lookbackDays) {
   const byDate = {};
   for (const cyc of cycles) {
     if (cyc.score_state !== 'SCORED' || !cyc.score) continue;
+    if (!cyc.end) continue;  // skip in-progress cycles (today is still happening)
     const date = cycleToDate(cyc);
     const row = {
       user_id: userId,
