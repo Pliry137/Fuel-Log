@@ -75,30 +75,38 @@ async function syncForUser(userId, lookbackDays) {
     return { error: e.message };
   }
 
-  const url = new URL(`${WHOOP_API_BASE}/v2/cycle`);
-  url.searchParams.set('start', start.toISOString());
-  url.searchParams.set('end', end.toISOString());
-  url.searchParams.set('limit', '25');
+  // Paginate through all cycles in the range
+  const cycles = [];
+  let nextToken = null;
+  let pageCount = 0;
+  do {
+    const url = new URL(`${WHOOP_API_BASE}/v2/cycle`);
+    url.searchParams.set('start', start.toISOString());
+    url.searchParams.set('end', end.toISOString());
+    url.searchParams.set('limit', '25');
+    if (nextToken) url.searchParams.set('nextToken', nextToken);
 
-  const r = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` } });
-  if (!r.ok) {
-    const err = await r.text();
-    await db.from('whoop_auth').update({
-      last_sync_at: new Date().toISOString(),
-      last_sync_status: `error: ${r.status}`,
-    }).eq('user_id', userId);
-    return { error: `Whoop API ${r.status}: ${err}` };
-  }
+    const r = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` } });
+    if (!r.ok) {
+      const err = await r.text();
+      await db.from('whoop_auth').update({
+        last_sync_at: new Date().toISOString(),
+        last_sync_status: `error: ${r.status}`,
+      }).eq('user_id', userId);
+      return { error: `Whoop API ${r.status}: ${err}` };
+    }
+    const data = await r.json();
+    cycles.push(...(data.records || []));
+    nextToken = data.next_token || null;
+    pageCount++;
+  } while (nextToken && pageCount < 10); // safety cap at 250 cycles
 
-  const data = await r.json();
-  const cycles = data.records || [];
-  // Dedupe by date — Whoop can return multiple cycles per calendar day
-  // (e.g. a cycle ending Tuesday and a partial cycle starting Tuesday).
-  // Keep the cycle with the largest strain (the "primary" daily cycle).
+  // Dedupe by date — Whoop can return multiple cycles per calendar day in rare
+  // cases (fragmented sleep). Keep the cycle with the largest strain.
+  // We INCLUDE in-progress cycles (no end time) so today's data updates as the day goes on.
   const byDate = {};
   for (const cyc of cycles) {
     if (cyc.score_state !== 'SCORED' || !cyc.score) continue;
-    if (!cyc.end) continue;  // skip in-progress cycles (today is still happening)
     const date = cycleToDate(cyc);
     const row = {
       user_id: userId,
