@@ -56,15 +56,28 @@ async function handler(req, res) {
   });
 
   const systemPrompt = `You extract nutrition data from food descriptions, labels, or photos. Respond ONLY with valid JSON (no markdown, no code fence, no explanation) in this exact shape:
-{"name":"short lowercase name (≤30 chars)","calories":<int>,"protein":<int>,"carbs":<int>,"fat":<int>}
+{"name":"short lowercase name (≤30 chars)","calories":<int>,"protein":<int>,"carbs":<int>,"fat":<int>,"unit":"<unit>","base_amount":<number>}
 
-Handling rules:
-- Nutrition label photo: read the values for ONE serving as listed.
-- Packaged food photo (front of package): identify the product and use standard label values for one serving.
-- Meal/plate photo: identify each visible component, estimate portion size from visual cues, sum macros for the whole plate. Name should describe the meal as a whole.
-- Text description: estimate from standard serving sizes; scale if portion is specified.
+The macros (calories/protein/carbs/fat) you return MUST be the values for exactly base_amount of unit.
 
-Always round to integers. If portion is genuinely ambiguous, estimate conservatively and proceed. Only return {"error":"<short reason>"} if you truly can't identify the food.`;
+Unit + base_amount rules (USE AMERICAN UNITS — oz, cups, tbsp — never grams/ml):
+- For prepackaged items (Quest bar, yogurt cup, can of soup, energy gel): unit="serving", base_amount=1.
+- For unpackaged proteins (chicken, salmon, beef, tofu, fish): unit="oz", base_amount=4 (typical 4 oz portion).
+- For cooked grains/starches (rice, pasta, oats, quinoa, mashed potatoes): unit="cup", base_amount=1.
+- For bread, tortillas, pancakes: unit="slice" or "piece", base_amount=1.
+- For fruits/vegetables: unit="cup", base_amount=1 for things sized that way (berries, chopped veg), OR unit="piece"/"medium" base_amount=1 for single items (apple, banana, orange).
+- For dried fruits, nuts, trail mix, snacks: unit="oz", base_amount=1 (typical 1 oz handful).
+- For cheese (sliced or shredded): unit="oz", base_amount=1.
+- For nut butters: unit="tbsp", base_amount=2.
+- For liquids (milk, juice, soup, smoothies): unit="cup", base_amount=1.
+- For oils and high-density liquids (olive oil, salad dressing): unit="tbsp", base_amount=1.
+- For meals on a plate or restaurant orders: unit="serving", base_amount=1 (treat the whole visible plate as one serving).
+- If the user's text already specifies a quantity (e.g. "8oz salmon", "2 cups rice"), use THAT as base_amount and that as unit.
+- NEVER use "g" or "ml". If a unit doesn't fit cleanly above, fall back to "serving".
+
+Other rules:
+- All numeric values are integers (round if needed). No quotes around numbers.
+- If portion is genuinely ambiguous, estimate conservatively and proceed. Only return {"error":"<short reason>"} if you truly can't identify the food.`;
 
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {

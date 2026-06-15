@@ -137,13 +137,13 @@ function FavoritePortionModal({ state, setState, onLog, onSave }) {
             <div style={lbl}>UNIT</div>
             <select value={form.unit} onChange={(e) => setForm(f => ({ ...f, unit: e.target.value }))} style={{ ...ip, marginBottom: 10 }}>
               <option value="serving">serving</option>
-              <option value="g">g</option>
               <option value="oz">oz</option>
               <option value="cup">cup</option>
               <option value="tbsp">tbsp</option>
               <option value="tsp">tsp</option>
               <option value="piece">piece</option>
               <option value="slice">slice</option>
+              <option value="medium">medium</option>
             </select>
           </div>
         </div>
@@ -294,6 +294,8 @@ export default function FoodTracker() {
   const [whoopStatus, setWhoopStatus] = useState(null);
   const [me, setMe] = useState(null);  // { id, name, preferences }
   const [favoriteModal, setFavoriteModal] = useState(null); // { fav, editing }
+  const [aiPortion, setAiPortion] = useState(null); // { name, unit, base_amount, calories, ... }
+  const [aiAmount, setAiAmount] = useState("");
   const [targets, setTargets] = useState({ calories: 2175, protein: 168, carbs: 185, fat: 68 });
   const [showWhoopPrompt, setShowWhoopPrompt] = useState(false);
   const [whoopDate, setWhoopDate] = useState(yesterday);
@@ -454,19 +456,19 @@ export default function FoodTracker() {
     setShowWhoopPrompt(true);
   };
 
+  // After AI returns macros, open the portion modal so the user can confirm
+  // the amount (and see what unit/base AI used) before the macros land in the form.
+  const openAiPortion = (macros) => {
+    setAiPortion(macros);
+    setAiAmount(String(macros.base_amount || 1));
+  };
+
   const handleLookup = async () => {
     if (!form.name) return;
     setLookingUp(true);
     try {
       const macros = await extractMacros({ text: form.name });
-      setForm(f => ({
-        ...f,
-        name: macros.name || f.name,
-        calories: String(macros.calories ?? ""),
-        protein: String(macros.protein ?? ""),
-        carbs: String(macros.carbs ?? ""),
-        fat: String(macros.fat ?? ""),
-      }));
+      openAiPortion(macros);
     } catch (e) { alert(`Lookup failed: ${e.message}`); }
     setLookingUp(false);
   };
@@ -478,17 +480,32 @@ export default function FoodTracker() {
     try {
       const dataUrl = await fileToDataUrl(file);
       const macros = await extractMacros({ image: dataUrl, text: form.name });
-      setForm(f => ({
-        ...f,
-        name: macros.name || f.name,
-        calories: String(macros.calories ?? ""),
-        protein: String(macros.protein ?? ""),
-        carbs: String(macros.carbs ?? ""),
-        fat: String(macros.fat ?? ""),
-      }));
+      openAiPortion(macros);
     } catch (err) { alert(`Photo extraction failed: ${err.message}`); }
     setLookingUp(false);
     e.target.value = ""; // allow re-upload of same file
+  };
+
+  // Confirm the AI portion: scale macros to user's amount and fill the add form.
+  const applyAiPortion = () => {
+    if (!aiPortion) return;
+    const base = parseFloat(aiPortion.base_amount) || 1;
+    const amt = parseFloat(aiAmount) || 0;
+    if (!amt) return;
+    const scale = amt / base;
+    const isServing = (aiPortion.unit || "serving") === "serving";
+    const finalName = isServing
+      ? (amt === 1 ? aiPortion.name : `${aiPortion.name} (x${amt})`)
+      : `${aiPortion.name} ${amt}${aiPortion.unit}`;
+    setForm(f => ({
+      ...f,
+      name: finalName,
+      calories: String(Math.round((aiPortion.calories || 0) * scale)),
+      protein: String(Math.round((aiPortion.protein || 0) * scale)),
+      carbs: String(Math.round((aiPortion.carbs || 0) * scale)),
+      fat: String(Math.round((aiPortion.fat || 0) * scale)),
+    }));
+    setAiPortion(null);
   };
 
   const isFavorite = (name) => favorites.some(f => f.name.toLowerCase() === (name || "").toLowerCase());
@@ -645,6 +662,41 @@ export default function FoodTracker() {
           onSave={updateFavorite}
         />
       )}
+
+      {aiPortion && (() => {
+        const base = parseFloat(aiPortion.base_amount) || 1;
+        const amt = parseFloat(aiAmount) || 0;
+        const scale = amt / base;
+        const unitLabel = aiPortion.unit || "serving";
+        const overlayStyle = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 24 };
+        const cardStyle = { background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 16, padding: 22, width: "100%", maxWidth: 380 };
+        const inputBox = { width: "100%", background: "#faf7f2", border: "1px solid #dcd5cf", borderRadius: 6, padding: "10px 12px", fontFamily: "inherit", fontSize: 14, color: "#2a2a2a" };
+        const btn = (primary) => ({ flex: 1, background: primary ? "#a8c078" : "#ffffff", color: primary ? "#111" : "#7a7a7a", border: primary ? "none" : "1px solid #dcd5cf", borderRadius: 8, padding: "10px", fontFamily: "inherit", fontSize: 12, cursor: "pointer", letterSpacing: 1, textTransform: "uppercase" });
+        return (
+          <div style={overlayStyle} onClick={() => setAiPortion(null)}>
+            <div style={cardStyle} onClick={(e) => e.stopPropagation()}>
+              <div style={{ fontSize: 10, color: "#a8c078", letterSpacing: 3, marginBottom: 6 }}>AI ESTIMATE</div>
+              <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 4 }}>{aiPortion.name}</div>
+              <div style={{ fontSize: 11, color: "#9a9a9a", marginBottom: 16 }}>
+                {aiPortion.calories} cal · {aiPortion.protein}p / {aiPortion.carbs}c / {aiPortion.fat}f per {aiPortion.base_amount} {unitLabel}
+              </div>
+
+              <div style={{ fontSize: 10, color: "#9a9a9a", letterSpacing: 2, marginBottom: 4 }}>HOW MUCH DID YOU HAVE? ({unitLabel.toUpperCase()})</div>
+              <input type="number" step="any" autoFocus value={aiAmount} onChange={(e) => setAiAmount(e.target.value)} style={inputBox} />
+
+              <div style={{ background: "#f5f1ec", borderRadius: 8, padding: 12, margin: "14px 0", fontSize: 13 }}>
+                <div style={{ fontSize: 10, color: "#9a9a9a", letterSpacing: 1, marginBottom: 4 }}>WILL ENTER</div>
+                <div><strong style={{ color: "#a8c078" }}>{Math.round((aiPortion.calories || 0) * scale)}</strong> cal · {Math.round((aiPortion.protein || 0) * scale)}p / {Math.round((aiPortion.carbs || 0) * scale)}c / {Math.round((aiPortion.fat || 0) * scale)}f</div>
+              </div>
+
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => setAiPortion(null)} style={btn(false)}>Cancel</button>
+                <button onClick={applyAiPortion} disabled={!amt} style={btn(true)}>Use</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Whoop prompt */}
       {showWhoopPrompt && (
