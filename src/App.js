@@ -589,7 +589,7 @@ export default function FoodTracker() {
               }} title={whoopStatus.last_sync_at ? `Last sync: ${new Date(whoopStatus.last_sync_at).toLocaleString()} — ${whoopStatus.last_sync_status}` : "Never synced yet"}
                 style={{ background: "none", border: "1px solid #dcd5cf", color: "#9a9a9a", borderRadius: 6, padding: "4px 10px", fontFamily: "inherit", fontSize: 9, cursor: "pointer", letterSpacing: 1 }}>SYNC WHOOP</button>
             )}
-            {me?.preferences?.burn_method && me.preferences.burn_method !== "none" && me.preferences.burn_method !== "whoop" && (
+            {me?.preferences?.burn_method && me.preferences.burn_method !== "none" && (
               <button onClick={() => openWhoopPrompt(selectedDate)} style={{ background: "none", border: "1px solid #dcd5cf", color: "#9a9a9a", borderRadius: 6, padding: "4px 10px", fontFamily: "inherit", fontSize: 9, cursor: "pointer", letterSpacing: 1 }}>+ MANUAL</button>
             )}
           </div>

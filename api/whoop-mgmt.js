@@ -160,10 +160,57 @@ async function handleSync(req, res) {
   return res.json({ ok: true, ...r });
 }
 
+// Debug: return raw cycle JSON from Whoop for the requested range,
+// PLUS what cycleToDate maps each to, so we can see what Whoop actually sent.
+async function handleDebug(req, res) {
+  const { requireUser } = require('./_auth');
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const days = parseInt(req.query?.days) || 3;
+  const end = new Date();
+  const start = new Date(end.getTime() - days * 86_400_000);
+  let token;
+  try { token = await getValidAccessToken(user.id); }
+  catch (e) { return res.status(503).json({ error: e.message }); }
+
+  const cycles = [];
+  let nextToken = null;
+  let pages = 0;
+  do {
+    const url = new URL(`${WHOOP_API_BASE}/v2/cycle`);
+    url.searchParams.set('start', start.toISOString());
+    url.searchParams.set('end', end.toISOString());
+    url.searchParams.set('limit', '25');
+    if (nextToken) url.searchParams.set('nextToken', nextToken);
+    const r = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` } });
+    if (!r.ok) return res.status(502).json({ error: await r.text() });
+    const data = await r.json();
+    cycles.push(...(data.records || []));
+    nextToken = data.next_token || null;
+    pages++;
+  } while (nextToken && pages < 10);
+
+  // Annotate each cycle with our interpretation
+  const annotated = cycles.map(c => ({
+    id: c.id,
+    start: c.start,
+    end: c.end || null,
+    timezone_offset: c.timezone_offset,
+    score_state: c.score_state,
+    mapped_local_date: c.start ? cycleToDate(c) : null,
+    strain: c.score?.strain,
+    kilojoule: c.score?.kilojoule,
+    kcal_from_kj: c.score?.kilojoule ? Math.round(c.score.kilojoule / 4.184) : null,
+    avg_hr: c.score?.average_heart_rate,
+  }));
+  return res.json({ count: annotated.length, cycles: annotated });
+}
+
 module.exports = async function handler(req, res) {
   const action = (req.query?.action || '').toLowerCase();
   if (action === 'status') return handleStatus(req, res);
   if (action === 'connect') return handleConnect(req, res);
   if (action === 'sync') return handleSync(req, res);
-  return res.status(400).json({ error: 'Specify ?action=status|connect|sync' });
+  if (action === 'debug') return handleDebug(req, res);
+  return res.status(400).json({ error: 'Specify ?action=status|connect|sync|debug' });
 };
