@@ -6,6 +6,7 @@ const API = "";  // empty = same host
 // automatically with every same-origin request.
 const apiFetch = (url, opts = {}) => fetch(url, {
   credentials: "same-origin",
+  cache: "no-store", // never use browser cache for our API; always hit server
   ...opts,
 });
 
@@ -212,7 +213,7 @@ function SetupWizard({ me, onDone }) {
       });
       // If user picked Whoop, kick straight into OAuth
       if (burnMethod === "whoop") {
-        const r = await fetch("/api/whoop-mgmt?action=connect", { credentials: "same-origin" });
+        const r = await fetch("/api/whoop-mgmt?action=connect", { credentials: "same-origin", cache: "no-store" });
         const data = await r.json();
         if (data.url) { window.location.href = data.url; return; }
       }
