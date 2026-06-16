@@ -52,7 +52,13 @@ module.exports.getUser = async (req) => {
 };
 
 // Convenience wrapper for routes: returns user, or sends 404 and returns null.
+// Also sets aggressive no-cache headers so user-scoped data never gets cached
+// by the browser or Vercel's edge.
 module.exports.requireUser = async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
   const user = await module.exports.getUser(req);
   if (!user) {
     res.status(404).send('Not Found');

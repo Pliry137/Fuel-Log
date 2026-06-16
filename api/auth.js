@@ -87,6 +87,8 @@ async function listUsers(req, res) {
 }
 
 module.exports = async function handler(req, res) {
+  // Never cache auth responses
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
   const action = (req.query?.action || '').toLowerCase();
 
   if (req.method === 'POST') {

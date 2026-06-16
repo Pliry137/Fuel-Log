@@ -285,8 +285,14 @@ function SetupWizard({ me, onDone }) {
 }
 
 export default function FoodTracker() {
-  const today = new Date().toISOString().split("T")[0];
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+  // Local-date string (YYYY-MM-DD) — never use toISOString() for "today"
+  // because that returns UTC and is wrong in non-UTC timezones late at night / early morning.
+  const toLocalYMD = (d) => {
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+  const today = toLocalYMD(new Date());
+  const yesterday = toLocalYMD(new Date(Date.now() - 86400000));
 
   const [entries, setEntries] = useState([]);
   const [favorites, setFavorites] = useState([]);
@@ -727,12 +733,12 @@ export default function FoodTracker() {
         <div>
           <div style={{ fontSize: 10, color: "#a8c078", letterSpacing: 3, textTransform: "uppercase", marginBottom: 4 }}>FUEL LOG</div>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <button onClick={() => { const d = new Date(selectedDate + "T00:00:00"); d.setDate(d.getDate() - 1); setSelectedDate(d.toISOString().split("T")[0]); }}
+            <button onClick={() => { const d = new Date(selectedDate + "T00:00:00"); d.setDate(d.getDate() - 1); setSelectedDate(toLocalYMD(d)); }}
               title="Previous day"
               style={{ background: "none", border: "none", color: "#9a9a9a", fontSize: 20, cursor: "pointer", padding: "0 6px", lineHeight: 1, fontFamily: "inherit" }}>‹</button>
             <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
               style={{ background: "none", border: "none", color: "#2a2a2a", fontSize: 20, fontFamily: "inherit", fontWeight: 500, cursor: "pointer", padding: 0, colorScheme: "light" }} />
-            <button onClick={() => { const d = new Date(selectedDate + "T00:00:00"); d.setDate(d.getDate() + 1); setSelectedDate(d.toISOString().split("T")[0]); }}
+            <button onClick={() => { const d = new Date(selectedDate + "T00:00:00"); d.setDate(d.getDate() + 1); setSelectedDate(toLocalYMD(d)); }}
               title="Next day"
               disabled={selectedDate >= today}
               style={{ background: "none", border: "none", color: selectedDate >= today ? "#dcd5cf" : "#9a9a9a", fontSize: 20, cursor: selectedDate >= today ? "default" : "pointer", padding: "0 6px", lineHeight: 1, fontFamily: "inherit" }}>›</button>
