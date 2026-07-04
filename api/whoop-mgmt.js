@@ -67,6 +67,36 @@ async function handleConnect(req, res) {
   return res.json({ url: url.toString() });
 }
 
+// Paginate through a Whoop collection endpoint for a time range.
+// Returns records array, or throws on HTTP error (unless tolerate403 and the
+// server says 401/403 — then returns [] so a missing scope degrades gracefully).
+async function fetchCollection(path, token, start, end, tolerate403 = false) {
+  const records = [];
+  let nextToken = null;
+  let pageCount = 0;
+  do {
+    const url = new URL(`${WHOOP_API_BASE}${path}`);
+    url.searchParams.set('start', start.toISOString());
+    url.searchParams.set('end', end.toISOString());
+    url.searchParams.set('limit', '25');
+    if (nextToken) url.searchParams.set('nextToken', nextToken);
+
+    const r = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` } });
+    if (!r.ok) {
+      if (tolerate403 && (r.status === 401 || r.status === 403)) return records;
+      const err = await r.text();
+      const e = new Error(`Whoop API ${r.status}: ${err}`);
+      e.status = r.status;
+      throw e;
+    }
+    const data = await r.json();
+    records.push(...(data.records || []));
+    nextToken = data.next_token || null;
+    pageCount++;
+  } while (nextToken && pageCount < 10); // safety cap at 250 records
+  return records;
+}
+
 // Sync for a single user. Returns { synced, dates } or { error }.
 async function syncForUser(userId, lookbackDays) {
   const end = new Date();
@@ -79,31 +109,38 @@ async function syncForUser(userId, lookbackDays) {
     return { error: e.message };
   }
 
-  // Paginate through all cycles in the range
-  const cycles = [];
-  let nextToken = null;
-  let pageCount = 0;
-  do {
-    const url = new URL(`${WHOOP_API_BASE}/v2/cycle`);
-    url.searchParams.set('start', start.toISOString());
-    url.searchParams.set('end', end.toISOString());
-    url.searchParams.set('limit', '25');
-    if (nextToken) url.searchParams.set('nextToken', nextToken);
+  let cycles, recoveries, sleeps;
+  try {
+    // Recovery: linked to cycles via cycle_id. Sleep needs read:sleep — older
+    // tokens won't have it, so tolerate 401/403 there and just skip sleep.
+    [cycles, recoveries, sleeps] = await Promise.all([
+      fetchCollection('/v2/cycle', token, start, end),
+      fetchCollection('/v2/recovery', token, start, end, true),
+      fetchCollection('/v2/activity/sleep', token, start, end, true),
+    ]);
+  } catch (e) {
+    await db.from('whoop_auth').update({
+      last_sync_at: new Date().toISOString(),
+      last_sync_status: `error: ${e.status || e.message}`,
+    }).eq('user_id', userId);
+    return { error: e.message };
+  }
 
-    const r = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` } });
-    if (!r.ok) {
-      const err = await r.text();
-      await db.from('whoop_auth').update({
-        last_sync_at: new Date().toISOString(),
-        last_sync_status: `error: ${r.status}`,
-      }).eq('user_id', userId);
-      return { error: `Whoop API ${r.status}: ${err}` };
-    }
-    const data = await r.json();
-    cycles.push(...(data.records || []));
-    nextToken = data.next_token || null;
-    pageCount++;
-  } while (nextToken && pageCount < 10); // safety cap at 250 cycles
+  // recovery by cycle_id; sleep hours by sleep id (recovery links them)
+  const recoveryByCycle = {};
+  for (const rec of recoveries) {
+    if (rec.score_state !== 'SCORED' || !rec.score) continue;
+    recoveryByCycle[rec.cycle_id] = rec;
+  }
+  const sleepHoursById = {};
+  for (const s of sleeps) {
+    if (s.nap || s.score_state !== 'SCORED' || !s.score?.stage_summary) continue;
+    const ss = s.score.stage_summary;
+    const asleepMs = (ss.total_light_sleep_time_milli || 0) +
+                     (ss.total_slow_wave_sleep_time_milli || 0) +
+                     (ss.total_rem_sleep_time_milli || 0);
+    sleepHoursById[s.id] = Math.round((asleepMs / 3_600_000) * 10) / 10;
+  }
 
   // Dedupe by date — Whoop can return multiple cycles per calendar day in rare
   // cases (fragmented sleep). Keep the cycle with the largest strain.
@@ -112,11 +149,14 @@ async function syncForUser(userId, lookbackDays) {
   for (const cyc of cycles) {
     if (cyc.score_state !== 'SCORED' || !cyc.score) continue;
     const date = cycleToDate(cyc);
+    const rec = recoveryByCycle[cyc.id];
     const row = {
       user_id: userId,
       date,
       strain: Math.round(cyc.score.strain * 10) / 10,
       burned: Math.round(cyc.score.kilojoule / 4.184),
+      recovery: rec?.score && !rec.score.user_calibrating ? rec.score.recovery_score : null,
+      sleep: rec?.sleep_id != null ? (sleepHoursById[rec.sleep_id] ?? null) : null,
     };
     // If two cycles map to the same date, keep the one with the most data
     // (highest kilojoule ≈ most-complete cycle).
@@ -124,7 +164,21 @@ async function syncForUser(userId, lookbackDays) {
       byDate[date] = row;
     }
   }
-  const upserts = Object.values(byDate);
+  let upserts = Object.values(byDate);
+  // Never clobber existing non-null recovery/sleep (e.g. manual entries) with
+  // nulls from a sync that couldn't fetch them.
+  if (upserts.length) {
+    const { data: existing } = await db.from('whoop')
+      .select('date, recovery, sleep')
+      .eq('user_id', userId)
+      .in('date', upserts.map(u => u.date));
+    const prev = Object.fromEntries((existing || []).map(r => [r.date, r]));
+    upserts = upserts.map(u => ({
+      ...u,
+      recovery: u.recovery ?? prev[u.date]?.recovery ?? null,
+      sleep: u.sleep ?? prev[u.date]?.sleep ?? null,
+    }));
+  }
   if (upserts.length) {
     const { error } = await db.from('whoop').upsert(upserts, { onConflict: 'user_id,date' });
     if (error) {

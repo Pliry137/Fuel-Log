@@ -3,7 +3,7 @@ const { db } = require('./_db');
 const WHOOP_AUTH_URL = 'https://api.prod.whoop.com/oauth/oauth2/auth';
 const WHOOP_TOKEN_URL = 'https://api.prod.whoop.com/oauth/oauth2/token';
 const WHOOP_API_BASE = 'https://api.prod.whoop.com/developer';
-const SCOPES = 'read:cycles read:recovery offline';
+const SCOPES = 'read:cycles read:recovery read:sleep offline';
 
 module.exports.WHOOP_AUTH_URL = WHOOP_AUTH_URL;
 module.exports.SCOPES = SCOPES;

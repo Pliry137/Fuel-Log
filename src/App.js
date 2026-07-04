@@ -285,6 +285,211 @@ function SetupWizard({ me, onDone }) {
   );
 }
 
+// Insights: connects intake/burn data to actual body measurements.
+// Everything here is honest about what's measured vs. estimated.
+function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody }) {
+  const [form, setForm] = useState({ weight: "", waist: "" });
+  const [saving, setSaving] = useState(false);
+
+  const card = { background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 12, padding: 16, marginBottom: 16 };
+  const lbl = { fontSize: 10, color: "#6a6a6a", letterSpacing: 2, marginBottom: 12 };
+  const ip = { width: "100%", background: "#faf7f2", border: "1px solid #dcd5cf", borderRadius: 6, padding: "8px 10px", color: "#2a2a2a", fontFamily: "'DM Mono', monospace", fontSize: 13 };
+
+  const weighIns = bodyData.filter(b => b.weight_lb != null)
+    .map(b => ({ ...b, weight_lb: parseFloat(b.weight_lb) }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const waists = bodyData.filter(b => b.waist_in != null).sort((a, b) => a.date.localeCompare(b.date));
+
+  const submit = async () => {
+    if (!form.weight && !form.waist) return;
+    setSaving(true);
+    await onLogBody({ weight_lb: form.weight || null, waist_in: form.waist || null });
+    setForm({ weight: "", waist: "" });
+    setSaving(false);
+  };
+
+  // ---- Deficit-predicted weight, anchored at first weigh-in ----
+  // cumulative deficit lookup by date from allTimeData
+  const cumByDate = {};
+  for (const row of allTimeData) cumByDate[row.rawDate] = row.cumulativeDeficit;
+  const anchor = weighIns[0] || null;
+  let chartData = [];
+  if (anchor) {
+    const anchorCum = cumByDate[anchor.date] ?? 0;
+    const actualByDate = Object.fromEntries(weighIns.map(w => [w.date, w.weight_lb]));
+    chartData = allTimeData
+      .filter(r => r.rawDate >= anchor.date)
+      .map(r => ({
+        date: r.date,
+        predicted: Number((anchor.weight_lb - ((r.cumulativeDeficit ?? 0) - anchorCum) / 3500).toFixed(1)),
+        actual: actualByDate[r.rawDate] ?? null,
+      }));
+    // include weigh-ins on dates without food entries
+    for (const w of weighIns) {
+      if (!chartData.some(c => c.actual === w.weight_lb && c.date === fmt(w.date)) && !allTimeData.some(r => r.rawDate === w.date)) {
+        chartData.push({ date: fmt(w.date), predicted: null, actual: w.weight_lb });
+      }
+    }
+  }
+
+  // ---- Trailing 21-day deficit → current rate + projections ----
+  const complete = allTimeData.slice(0, -1); // drop today (partial)
+  const last21 = complete.slice(-21);
+  const avgDeficit = last21.length ? last21.reduce((s, d) => s + d.deficit, 0) / last21.length : 0;
+  const lbsPerWeek = (avgDeficit * 7) / 3500;
+  const lastWeigh = weighIns[weighIns.length - 1] || null;
+  // estimated current weight = last weigh-in minus deficit-predicted loss since then
+  let estNow = null;
+  if (lastWeigh) {
+    const sinceCum = (allTimeData.length ? allTimeData[allTimeData.length - 1].cumulativeDeficit : 0) - (cumByDate[lastWeigh.date] ?? 0);
+    estNow = lastWeigh.weight_lb - sinceCum / 3500;
+  }
+  const projectTo = (target) => {
+    if (estNow == null || lbsPerWeek <= 0 || estNow <= target) return null;
+    const weeks = (estNow - target) / lbsPerWeek;
+    const d = new Date(Date.now() + weeks * 7 * 86400000);
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: weeks > 26 ? "numeric" : undefined });
+  };
+
+  // ---- Protein adherence, last 28 complete days ----
+  const last28 = complete.slice(-28);
+  const protHit = last28.filter(d => d.protein >= targets.protein).length;
+  const protPct = last28.length ? Math.round((protHit / last28.length) * 100) : 0;
+  const protAvg = last28.length ? Math.round(last28.reduce((s, d) => s + d.protein, 0) / last28.length) : 0;
+  const protColor = protPct >= 70 ? "#a8c078" : protPct >= 50 ? "#c9b078" : "#c97c7c";
+
+  // ---- Recovery trend (only present after recovery sync fix) ----
+  const recDates = Object.keys(whoopData).filter(d => whoopData[d]?.recovery != null).sort();
+  const rec14 = recDates.slice(-14).map(d => whoopData[d].recovery);
+  const recAvg = rec14.length ? Math.round(rec14.reduce((a, b) => a + b, 0) / rec14.length) : null;
+
+  return (
+    <div>
+      {/* Quick weigh-in */}
+      <div style={card}>
+        <div style={{ ...lbl, color: "#a8c078" }}>LOG TODAY'S BODY DATA</div>
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 10, color: "#9a9a9a", marginBottom: 4 }}>WEIGHT (LB)</div>
+            <input type="number" step="0.1" value={form.weight} onChange={e => setForm(f => ({ ...f, weight: e.target.value }))} style={ip} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 10, color: "#9a9a9a", marginBottom: 4 }}>WAIST (IN)</div>
+            <input type="number" step="0.1" value={form.waist} onChange={e => setForm(f => ({ ...f, waist: e.target.value }))} style={ip} />
+          </div>
+          <button onClick={submit} disabled={saving || (!form.weight && !form.waist)}
+            style={{ background: (form.weight || form.waist) ? "#a8c078" : "#dcd5cf", color: (form.weight || form.waist) ? "#111" : "#9a9a9a", border: "none", borderRadius: 8, padding: "9px 16px", fontFamily: "inherit", fontSize: 12, fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap" }}>
+            {saving ? "…" : "SAVE"}
+          </button>
+        </div>
+        {lastWeigh && <div style={{ fontSize: 10, color: "#b8b8b8", marginTop: 8 }}>last weigh-in: {lastWeigh.weight_lb} lb on {fmt(lastWeigh.date)}</div>}
+      </div>
+
+      {weighIns.length === 0 && (
+        <div style={{ ...card, textAlign: "center", color: "#9a9a9a", fontSize: 12, lineHeight: 1.6 }}>
+          No weigh-ins yet. Log your weight above — everything on this tab is built around actual scale data, not estimates.
+        </div>
+      )}
+
+      {weighIns.length > 0 && <>
+        {/* Scale vs deficit math */}
+        <div style={card}>
+          <div style={lbl}>SCALE VS DEFICIT MATH</div>
+          <div style={{ fontSize: 10, color: "#b8b8b8", marginBottom: 14, lineHeight: 1.5 }}>
+            Green = weight predicted by your logged deficit. Dots = actual weigh-ins.
+            If actual drops faster early, that's water. If actual runs above predicted, you're under-logging intake.
+          </div>
+          <ResponsiveContainer width="100%" height={180}>
+            <LineChart data={chartData} margin={{ top: 10, right: 10, left: -14, bottom: 0 }}>
+              <XAxis dataKey="date" tick={{ fill: "#9a9a9a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
+              <YAxis domain={["dataMin - 2", "dataMax + 2"]} tick={{ fill: "#9a9a9a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 8, fontFamily: "DM Mono", fontSize: 11 }} labelStyle={{ color: "#6a6a6a" }} />
+              <Line type="monotone" dataKey="predicted" name="predicted" stroke="#a8c078" strokeWidth={2} strokeDasharray="5 3" dot={false} connectNulls />
+              <Line type="monotone" dataKey="actual" name="actual" stroke="#7a9ec0" strokeWidth={0} dot={{ fill: "#7a9ec0", r: 5 }} connectNulls={false} isAnimationActive={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Rate + projections */}
+        <div style={card}>
+          <div style={lbl}>CURRENT TRAJECTORY</div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
+            <div>
+              <div style={{ fontSize: 28, fontWeight: 500, color: "#a8c078", lineHeight: 1 }}>{estNow != null ? estNow.toFixed(1) : "—"}</div>
+              <div style={{ fontSize: 10, color: "#9a9a9a", marginTop: 4 }}>est. weight now (lb)</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 28, fontWeight: 500, color: lbsPerWeek > 2 ? "#c9b078" : "#a8c078", lineHeight: 1 }}>{lbsPerWeek > 0 ? `-${lbsPerWeek.toFixed(1)}` : "0"}</div>
+              <div style={{ fontSize: 10, color: "#9a9a9a", marginTop: 4 }}>lb/week (21-day avg deficit)</div>
+            </div>
+          </div>
+          <div style={{ borderTop: "1px solid #ece5df", paddingTop: 12, fontSize: 12, lineHeight: 1.9, color: "#6a6a6a" }}>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>195 lb (initial goal)</span><span style={{ color: "#2a2a2a", fontWeight: 500 }}>{projectTo(195) || "—"}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>187 lb (visible-abs range)</span><span style={{ color: "#2a2a2a", fontWeight: 500 }}>{projectTo(187) || "—"}</span>
+            </div>
+          </div>
+          {lbsPerWeek > 2 && <div style={{ fontSize: 10, color: "#c9b078", marginTop: 10, lineHeight: 1.5 }}>⚠ Losing faster than ~2 lb/week risks muscle. Check protein before celebrating.</div>}
+        </div>
+      </>}
+
+      {/* Protein adherence — the muscle-preservation lever */}
+      <div style={card}>
+        <div style={lbl}>PROTEIN ADHERENCE — LAST {last28.length} DAYS</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div>
+            <div style={{ fontSize: 28, fontWeight: 500, color: protColor, lineHeight: 1 }}>{protPct}%</div>
+            <div style={{ fontSize: 10, color: "#9a9a9a", marginTop: 4 }}>days at {targets.protein}g+ ({protHit}/{last28.length})</div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 28, fontWeight: 500, color: "#2a2a2a", lineHeight: 1 }}>{protAvg}g</div>
+            <div style={{ fontSize: 10, color: "#9a9a9a", marginTop: 4 }}>daily average</div>
+          </div>
+        </div>
+        <div style={{ height: 5, background: "#dcd5cf", borderRadius: 3, overflow: "hidden" }}>
+          <div style={{ height: "100%", width: `${protPct}%`, background: protColor, borderRadius: 3 }} />
+        </div>
+        {protPct < 70 && (
+          <div style={{ fontSize: 10, color: protColor, marginTop: 10, lineHeight: 1.5 }}>
+            In a deficit, protein is what decides whether you lose fat or muscle. Below ~70% adherence you're gambling with lean mass.
+          </div>
+        )}
+      </div>
+
+      {/* Waist or nudge */}
+      {waists.length >= 2 ? (
+        <div style={card}>
+          <div style={lbl}>WAIST TREND</div>
+          <div style={{ fontSize: 13, color: "#6a6a6a" }}>
+            {waists[0].waist_in}" → <span style={{ color: "#2a2a2a", fontWeight: 500 }}>{waists[waists.length - 1].waist_in}"</span>
+            <span style={{ color: "#9a9a9a", fontSize: 11 }}> ({fmt(waists[0].date)} → {fmt(waists[waists.length - 1].date)})</span>
+          </div>
+          <div style={{ fontSize: 10, color: "#b8b8b8", marginTop: 6, lineHeight: 1.5 }}>Waist dropping while weight holds = fat out, muscle in. This number matters more than the scale.</div>
+        </div>
+      ) : (
+        <div style={{ ...card, borderStyle: "dashed" }}>
+          <div style={{ fontSize: 11, color: "#9a9a9a", lineHeight: 1.6 }}>
+            📏 Log your waist (weekly is enough). It's the cheapest honest signal of fat loss — the scale can't tell fat from muscle, the tape mostly can.
+          </div>
+        </div>
+      )}
+
+      {/* Recovery */}
+      {recAvg != null && (
+        <div style={card}>
+          <div style={lbl}>RECOVERY — 14-DAY AVG</div>
+          <div style={{ fontSize: 28, fontWeight: 500, color: recAvg >= 67 ? "#a8c078" : recAvg >= 34 ? "#c9b078" : "#c97c7c", lineHeight: 1 }}>{recAvg}%</div>
+          <div style={{ fontSize: 10, color: "#b8b8b8", marginTop: 6, lineHeight: 1.5 }}>
+            A sustained slide in recovery during a deficit is an early overreach signal — eat at maintenance for 2–3 days if it stays red.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function FoodTracker() {
   // Local-date string (YYYY-MM-DD) — never use toISOString() for "today"
   // because that returns UTC and is wrong in non-UTC timezones late at night / early morning.
@@ -299,6 +504,7 @@ export default function FoodTracker() {
   const [favorites, setFavorites] = useState([]);
   const [whoopData, setWhoopData] = useState({});
   const [whoopStatus, setWhoopStatus] = useState(null);
+  const [bodyData, setBodyData] = useState([]); // [{ date, weight_lb, waist_in }]
   const [me, setMe] = useState(null);  // { id, name, preferences }
   const [favoriteModal, setFavoriteModal] = useState(null); // { fav, editing }
   const [aiPortion, setAiPortion] = useState(null); // { name, unit, base_amount, calories, ... }
@@ -329,13 +535,15 @@ export default function FoodTracker() {
 
     const loadAll = async (isInitial = false) => {
       try {
-        const [u, e, w, t, f, ws] = await Promise.all([
+        const [u, e, w, t, f, ws, b] = await Promise.all([
           apiFetch(`${API}/api/auth?action=me`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
           apiFetch(`${API}/api/entries`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
           apiFetch(`${API}/api/whoop`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
           apiFetch(`${API}/api/targets`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
           apiFetch(`${API}/api/favorites`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
           apiFetch(`${API}/api/whoop-mgmt?action=status`).then(r => r.ok ? r.json() : { connected: false }),
+          // Tolerate failure — body_log table may not exist until migration runs
+          apiFetch(`${API}/api/body`).then(r => r.ok ? r.json() : []).catch(() => []),
         ]);
         if (cancelled) return;
         setMe(u);
@@ -344,6 +552,7 @@ export default function FoodTracker() {
         setTargets(t);
         setFavorites(f);
         setWhoopStatus(ws);
+        setBodyData(Array.isArray(b) ? b : []);
         setAuthed(true);
         setLoading(false);
         setTokenError("");
@@ -447,6 +656,20 @@ export default function FoodTracker() {
   const matchingFoods = form.name.trim().length >= 1
     ? pastFoods.filter(f => f.name.toLowerCase().includes(form.name.trim().toLowerCase())).slice(0, 5)
     : [];
+
+  const logBody = async (payload) => {
+    const res = await apiFetch(`${API}/api/body`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(`Save failed: ${err.error || res.status}`);
+      return;
+    }
+    const row = await res.json();
+    setBodyData(prev => {
+      const rest = prev.filter(b => b.date !== row.date);
+      return [...rest, row].sort((a, b) => a.date.localeCompare(b.date));
+    });
+  };
 
   const saveWhoopData = async () => {
     const payload = { recovery: parseInt(whoopForm.recovery) || null, strain: parseFloat(whoopForm.strain) || null, sleep: parseFloat(whoopForm.sleep) || null, burned: parseInt(whoopForm.burned) || null };
@@ -746,7 +969,7 @@ export default function FoodTracker() {
           </div>
         </div>
         <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-          {["log", "trends"].map(t => (
+          {["log", "trends", "insights"].map(t => (
             <button key={t} onClick={() => setTab(t)} style={{ background: tab === t ? "#a8c078" : "none", color: tab === t ? "#111" : "#9a9a9a", border: `1px solid ${tab === t ? "#a8c078" : "#dcd5cf"}`, borderRadius: 6, padding: "6px 12px", fontFamily: "inherit", fontSize: 10, cursor: "pointer", letterSpacing: 1, textTransform: "uppercase" }}>{t}</button>
           ))}
         </div>
@@ -1081,6 +1304,16 @@ export default function FoodTracker() {
             </div>
           </>}
         </div>
+      )}
+
+      {tab === "insights" && (
+        <InsightsTab
+          bodyData={bodyData}
+          allTimeData={allTimeData}
+          whoopData={whoopData}
+          targets={targets}
+          onLogBody={logBody}
+        />
       )}
     </div>
   );
