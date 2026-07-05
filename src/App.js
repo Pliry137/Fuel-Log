@@ -882,7 +882,7 @@ export default function FoodTracker() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#faf7f2", color: "#2a2a2a", fontFamily: "'DM Mono', 'Courier New', monospace", padding: "24px 16px", boxSizing: "border-box", maxWidth: 520, margin: "0 auto" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap'); * { box-sizing: border-box; } input:focus { outline: none; border-color: #a8c078 !important; }`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap'); * { box-sizing: border-box; } html, body { overflow-x: hidden; } input:focus { outline: none; border-color: #a8c078 !important; }`}</style>
 
       {favoriteModal && (
         <FavoritePortionModal
@@ -953,7 +953,7 @@ export default function FoodTracker() {
       )}
 
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", rowGap: 10, marginBottom: 24 }}>
         <div>
           <div style={{ fontSize: 10, color: "#a8c078", letterSpacing: 3, textTransform: "uppercase", marginBottom: 4 }}>FUEL LOG</div>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
