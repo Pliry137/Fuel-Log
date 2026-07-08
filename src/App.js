@@ -332,11 +332,16 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody }) {
     }
   }
 
-  // ---- Trailing 21-day deficit → current rate + projections ----
+  // ---- Trailing deficit, 7- and 21-day windows → current rate + projections ----
   const complete = allTimeData.slice(0, -1); // drop today (partial)
-  const last21 = complete.slice(-21);
-  const avgDeficit = last21.length ? last21.reduce((s, d) => s + d.deficit, 0) / last21.length : 0;
+  const avgDeficitOver = (days) => {
+    const win = complete.slice(-days);
+    return win.length ? win.reduce((s, d) => s + d.deficit, 0) / win.length : 0;
+  };
+  const avgDeficit = avgDeficitOver(21);
+  const avgDeficit7 = avgDeficitOver(7);
   const lbsPerWeek = (avgDeficit * 7) / 3500;
+  const lbsPerWeek7 = (avgDeficit7 * 7) / 3500;
   const lastWeigh = weighIns[weighIns.length - 1] || null;
   // estimated current weight = last weigh-in minus deficit-predicted loss since then
   let estNow = null;
@@ -351,17 +356,64 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody }) {
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: weeks > 26 ? "numeric" : undefined });
   };
 
-  // ---- Protein adherence, last 28 complete days ----
-  const last28 = complete.slice(-28);
-  const protHit = last28.filter(d => d.protein >= targets.protein).length;
-  const protPct = last28.length ? Math.round((protHit / last28.length) * 100) : 0;
-  const protAvg = last28.length ? Math.round(last28.reduce((s, d) => s + d.protein, 0) / last28.length) : 0;
-  const protColor = protPct >= 70 ? "#a8c078" : protPct >= 50 ? "#c9b078" : "#c97c7c";
+  // ---- Protein adherence, last 7 + last 28 complete days ----
+  const protStats = (days) => {
+    const win = complete.slice(-days);
+    const hit = win.filter(d => d.protein >= targets.protein).length;
+    return {
+      n: win.length,
+      hit,
+      pct: win.length ? Math.round((hit / win.length) * 100) : 0,
+      avg: win.length ? Math.round(win.reduce((s, d) => s + d.protein, 0) / win.length) : 0,
+    };
+  };
+  const prot7 = protStats(7);
+  const prot28 = protStats(28);
+  const protColorFor = (pct) => pct >= 70 ? "#a8c078" : pct >= 50 ? "#c9b078" : "#c97c7c";
 
-  // ---- Recovery trend (only present after recovery sync fix) ----
+  // ---- Recovery trend, 7- and 14-day windows ----
   const recDates = Object.keys(whoopData).filter(d => whoopData[d]?.recovery != null).sort();
-  const rec14 = recDates.slice(-14).map(d => whoopData[d].recovery);
-  const recAvg = rec14.length ? Math.round(rec14.reduce((a, b) => a + b, 0) / rec14.length) : null;
+  const recAvgOver = (days) => {
+    const win = recDates.slice(-days).map(d => whoopData[d].recovery);
+    return win.length ? Math.round(win.reduce((a, b) => a + b, 0) / win.length) : null;
+  };
+  const recAvg = recAvgOver(14);
+  const recAvg7 = recAvgOver(7);
+  const recColorFor = (v) => v >= 67 ? "#a8c078" : v >= 34 ? "#c9b078" : "#c97c7c";
+
+  // ---- Adjustments: what the last 7 days say to change ----
+  // Rule-based, only fires when there's enough data to mean something.
+  const adjustments = [];
+  if (prot7.n >= 5) {
+    const gap = targets.protein - prot7.avg;
+    if (gap > 10) {
+      adjustments.push({ tone: "#c97c7c", text: `Protein is running ${gap}g/day short of ${targets.protein}g this week. Add one dense source daily (chicken breast, greek yogurt, shake) before changing anything else.` });
+    } else if (prot7.pct >= prot28.pct + 15 && prot7.pct >= 70) {
+      adjustments.push({ tone: "#a8c078", text: `Protein adherence is up (${prot7.pct}% this week vs ${prot28.pct}% over 28 days). Whatever you changed, keep it.` });
+    }
+  }
+  if (complete.length >= 7) {
+    if (lbsPerWeek7 > 2.2) {
+      adjustments.push({ tone: "#c9b078", text: `This week's deficit projects -${lbsPerWeek7.toFixed(1)} lb/week — faster than the ~2 lb/week muscle-safe ceiling. Add ~${Math.round((avgDeficit7 - 1000) / 50) * 50} kcal/day back, ideally as protein or pre-workout carbs.` });
+    } else if (avgDeficit7 <= 0) {
+      adjustments.push({ tone: "#c97c7c", text: `You averaged a surplus this week (${Math.round(-avgDeficit7)} kcal/day over maintenance). The 28-day trend can hide this — tighten intake or add activity now, not next week.` });
+    } else if (lbsPerWeek7 < 0.4 && lbsPerWeek >= 0.75) {
+      adjustments.push({ tone: "#c9b078", text: `Your deficit shrank this week (~${Math.round(avgDeficit7)} kcal/day vs ~${Math.round(avgDeficit)} over 21 days). Recent changes are stalling progress — find the ~${Math.round(avgDeficit - avgDeficit7)} kcal/day that crept back in.` });
+    } else if (avgDeficit7 >= avgDeficit + 150 && lbsPerWeek7 <= 2.2) {
+      adjustments.push({ tone: "#a8c078", text: `Deficit improved this week (~${Math.round(avgDeficit7)} vs ~${Math.round(avgDeficit)} kcal/day) and the pace is still muscle-safe. Adjustments are working — hold here.` });
+    }
+  }
+  if (recAvg7 != null && recAvg != null && recAvg7 <= recAvg - 8 && recAvg7 < 50) {
+    adjustments.push({ tone: "#c97c7c", text: `Recovery slid to ${recAvg7}% this week (from ${recAvg}% over 14 days). That's an overreach signal — eat at maintenance for 2–3 days and prioritize sleep before pushing the deficit again.` });
+  }
+  {
+    // Scale vs deficit math: if actual weight runs above predicted, intake is under-logged.
+    const both = chartData.filter(c => c.actual != null && c.predicted != null);
+    const lastBoth = both[both.length - 1];
+    if (lastBoth && lastBoth.actual - lastBoth.predicted > 1.5) {
+      adjustments.push({ tone: "#c9b078", text: `Scale is ${(lastBoth.actual - lastBoth.predicted).toFixed(1)} lb above what your logged deficit predicts. Most likely you're under-logging intake — audit oils, sauces, and bites you don't weigh.` });
+    }
+  }
 
   return (
     <div>
@@ -384,6 +436,25 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody }) {
         </div>
         {lastWeigh && <div style={{ fontSize: 10, color: "#b8b8b8", marginTop: 8 }}>last weigh-in: {lastWeigh.weight_lb} lb on {fmt(lastWeigh.date)}</div>}
       </div>
+
+      {/* Adjustments: what the last 7 days say to change */}
+      {complete.length >= 7 && (
+        <div style={card}>
+          <div style={lbl}>ADJUSTMENTS — BASED ON THE LAST 7 DAYS</div>
+          {adjustments.length === 0 ? (
+            <div style={{ fontSize: 12, color: "#a8c078", lineHeight: 1.6 }}>
+              Nothing to change. Protein, deficit, and recovery are all inside their targets this week — stay the course.
+            </div>
+          ) : (
+            adjustments.map((a, i) => (
+              <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: i < adjustments.length - 1 ? 12 : 0 }}>
+                <div style={{ width: 6, height: 6, borderRadius: 3, background: a.tone, marginTop: 5, flexShrink: 0 }} />
+                <div style={{ fontSize: 12, color: "#4a4a4a", lineHeight: 1.6 }}>{a.text}</div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
 
       {weighIns.length === 0 && (
         <div style={{ ...card, textAlign: "center", color: "#9a9a9a", fontSize: 12, lineHeight: 1.6 }}>
@@ -418,9 +489,13 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody }) {
               <div style={{ fontSize: 28, fontWeight: 500, color: "#a8c078", lineHeight: 1 }}>{estNow != null ? estNow.toFixed(1) : "—"}</div>
               <div style={{ fontSize: 10, color: "#9a9a9a", marginTop: 4 }}>est. weight now (lb)</div>
             </div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 28, fontWeight: 500, color: lbsPerWeek7 > 2 ? "#c9b078" : "#a8c078", lineHeight: 1 }}>{lbsPerWeek7 > 0 ? `-${lbsPerWeek7.toFixed(1)}` : "0"}</div>
+              <div style={{ fontSize: 10, color: "#9a9a9a", marginTop: 4 }}>lb/week (7-day)</div>
+            </div>
             <div style={{ textAlign: "right" }}>
               <div style={{ fontSize: 28, fontWeight: 500, color: lbsPerWeek > 2 ? "#c9b078" : "#a8c078", lineHeight: 1 }}>{lbsPerWeek > 0 ? `-${lbsPerWeek.toFixed(1)}` : "0"}</div>
-              <div style={{ fontSize: 10, color: "#9a9a9a", marginTop: 4 }}>lb/week (21-day avg deficit)</div>
+              <div style={{ fontSize: 10, color: "#9a9a9a", marginTop: 4 }}>lb/week (21-day)</div>
             </div>
           </div>
           <div style={{ borderTop: "1px solid #ece5df", paddingTop: 12, fontSize: 12, lineHeight: 1.9, color: "#6a6a6a" }}>
@@ -437,22 +512,27 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody }) {
 
       {/* Protein adherence — the muscle-preservation lever */}
       <div style={card}>
-        <div style={lbl}>PROTEIN ADHERENCE — LAST {last28.length} DAYS</div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-          <div>
-            <div style={{ fontSize: 28, fontWeight: 500, color: protColor, lineHeight: 1 }}>{protPct}%</div>
-            <div style={{ fontSize: 10, color: "#9a9a9a", marginTop: 4 }}>days at {targets.protein}g+ ({protHit}/{last28.length})</div>
+        <div style={lbl}>PROTEIN ADHERENCE</div>
+        {[{ label: "LAST 7 DAYS", s: prot7 }, { label: "LAST 28 DAYS", s: prot28 }].map(({ label, s }, i) => (
+          <div key={label} style={{ marginBottom: i === 0 ? 14 : 10 }}>
+            <div style={{ fontSize: 10, color: "#9a9a9a", letterSpacing: 1, marginBottom: 6 }}>{label}</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <div>
+                <div style={{ fontSize: 28, fontWeight: 500, color: protColorFor(s.pct), lineHeight: 1 }}>{s.pct}%</div>
+                <div style={{ fontSize: 10, color: "#9a9a9a", marginTop: 4 }}>days at {targets.protein}g+ ({s.hit}/{s.n})</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 28, fontWeight: 500, color: "#2a2a2a", lineHeight: 1 }}>{s.avg}g</div>
+                <div style={{ fontSize: 10, color: "#9a9a9a", marginTop: 4 }}>daily average</div>
+              </div>
+            </div>
+            <div style={{ height: 5, background: "#dcd5cf", borderRadius: 3, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${s.pct}%`, background: protColorFor(s.pct), borderRadius: 3 }} />
+            </div>
           </div>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 28, fontWeight: 500, color: "#2a2a2a", lineHeight: 1 }}>{protAvg}g</div>
-            <div style={{ fontSize: 10, color: "#9a9a9a", marginTop: 4 }}>daily average</div>
-          </div>
-        </div>
-        <div style={{ height: 5, background: "#dcd5cf", borderRadius: 3, overflow: "hidden" }}>
-          <div style={{ height: "100%", width: `${protPct}%`, background: protColor, borderRadius: 3 }} />
-        </div>
-        {protPct < 70 && (
-          <div style={{ fontSize: 10, color: protColor, marginTop: 10, lineHeight: 1.5 }}>
+        ))}
+        {prot28.pct < 70 && (
+          <div style={{ fontSize: 10, color: protColorFor(prot28.pct), marginTop: 10, lineHeight: 1.5 }}>
             In a deficit, protein is what decides whether you lose fat or muscle. Below ~70% adherence you're gambling with lean mass.
           </div>
         )}
@@ -479,8 +559,17 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody }) {
       {/* Recovery */}
       {recAvg != null && (
         <div style={card}>
-          <div style={lbl}>RECOVERY — 14-DAY AVG</div>
-          <div style={{ fontSize: 28, fontWeight: 500, color: recAvg >= 67 ? "#a8c078" : recAvg >= 34 ? "#c9b078" : "#c97c7c", lineHeight: 1 }}>{recAvg}%</div>
+          <div style={lbl}>RECOVERY</div>
+          <div style={{ display: "flex", gap: 32 }}>
+            <div>
+              <div style={{ fontSize: 28, fontWeight: 500, color: recColorFor(recAvg7), lineHeight: 1 }}>{recAvg7}%</div>
+              <div style={{ fontSize: 10, color: "#9a9a9a", marginTop: 4 }}>7-day avg</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 28, fontWeight: 500, color: recColorFor(recAvg), lineHeight: 1 }}>{recAvg}%</div>
+              <div style={{ fontSize: 10, color: "#9a9a9a", marginTop: 4 }}>14-day avg</div>
+            </div>
+          </div>
           <div style={{ fontSize: 10, color: "#b8b8b8", marginTop: 6, lineHeight: 1.5 }}>
             A sustained slide in recovery during a deficit is an early overreach signal — eat at maintenance for 2–3 days if it stays red.
           </div>
