@@ -1204,6 +1204,10 @@ export default function FoodTracker() {
                   📷
                   <input type="file" accept="image/*" capture="environment" onChange={handlePhotoUpload} disabled={lookingUp} style={{ display: "none" }} />
                 </label>
+                <label style={{ background: lookingUp ? "#dcd5cf" : "#eaf2dc", color: lookingUp ? "#9a9a9a" : "#a8c078", border: "1px solid #3a4a1a", borderRadius: 6, padding: "8px 10px", fontFamily: "inherit", fontSize: 11, cursor: lookingUp ? "default" : "pointer", whiteSpace: "nowrap", display: "flex", alignItems: "center" }}>
+                  🖼
+                  <input type="file" accept="image/*" onChange={handlePhotoUpload} disabled={lookingUp} style={{ display: "none" }} />
+                </label>
               </div>
               {matchingFoods.length > 0 && form.name && !form.calories && (
                 <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 6, marginTop: 2, zIndex: 50, boxShadow: "0 4px 12px rgba(0,0,0,0.06)" }}>
@@ -1216,7 +1220,7 @@ export default function FoodTracker() {
                   ))}
                 </div>
               )}
-              {!form.calories && <div style={{ fontSize: 10, color: "#b8b8b8", marginTop: 4 }}>Type to autocomplete · tap AI for text lookup · 📷 for label OR plate photo</div>}
+              {!form.calories && <div style={{ fontSize: 10, color: "#b8b8b8", marginTop: 4 }}>Type to autocomplete · AI for text lookup · 📷 snap a photo · 🖼 pick from library</div>}
             </div>
             {[["Calories","calories","number"],["Protein (g)","protein","number"],["Carbs (g)","carbs","number"],["Fat (g)","fat","number"]].map(([label, key, type]) => (
               <div key={key} style={{ marginBottom: 10 }}>
