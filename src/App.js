@@ -287,9 +287,15 @@ function SetupWizard({ me, onDone }) {
 
 // Insights: connects intake/burn data to actual body measurements.
 // Everything here is honest about what's measured vs. estimated.
-function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody }) {
+function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, entries }) {
   const [form, setForm] = useState({ weight: "", waist: "" });
   const [saving, setSaving] = useState(false);
+  // AI Coach: manual-only generation, last result cached in localStorage (no API cost to re-view).
+  const [coach, setCoach] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("ai_coach_last")) || null; } catch { return null; }
+  });
+  const [coachLoading, setCoachLoading] = useState(false);
+  const [coachError, setCoachError] = useState("");
 
   const card = { background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 12, padding: 16, marginBottom: 16 };
   const lbl = { fontSize: 10, color: "#6a6a6a", letterSpacing: 2, marginBottom: 12 };
@@ -415,6 +421,55 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody }) {
     }
   }
 
+  // ---- AI Coach: build a compact digest of the last 28 days and ask the API ----
+  const getCoaching = async () => {
+    setCoachLoading(true);
+    setCoachError("");
+    try {
+      const cutoff = new Date(Date.now() - 28 * 86400000).toISOString().slice(0, 10);
+      const recent = entries.filter(e => e.date >= cutoff);
+      const byFood = new Map();
+      for (const e of recent) {
+        const key = (e.name || "").trim().toLowerCase();
+        if (!key) continue;
+        const f = byFood.get(key) || { name: key, times: 0, cals: 0, protein: 0, carbs: 0, fat: 0 };
+        f.times += 1; f.cals += e.calories || 0; f.protein += e.protein || 0; f.carbs += e.carbs || 0; f.fat += e.fat || 0;
+        byFood.set(key, f);
+      }
+      const topFoods = [...byFood.values()].sort((a, b) => b.cals - a.cals).slice(0, 20)
+        .map(f => ({ ...f, cals: Math.round(f.cals), protein: Math.round(f.protein), carbs: Math.round(f.carbs), fat: Math.round(f.fat) }));
+      const avgOver = (days, key) => {
+        const win = complete.slice(-days);
+        return win.length ? Math.round(win.reduce((s, d) => s + d[key], 0) / win.length) : null;
+      };
+      const digest = {
+        targets,
+        days_logged_28d: complete.slice(-28).length,
+        avg_7d: { calories: avgOver(7, "calories"), protein: avgOver(7, "protein"), carbs: avgOver(7, "carbs"), fat: avgOver(7, "fat") },
+        avg_28d: { calories: avgOver(28, "calories"), protein: avgOver(28, "protein"), carbs: avgOver(28, "carbs"), fat: avgOver(28, "fat") },
+        deficit: { avg_7d: Math.round(avgDeficit7), avg_21d: Math.round(avgDeficit), lbs_per_week_7d: Number(lbsPerWeek7.toFixed(2)) },
+        protein_adherence: { pct_7d: prot7.pct, pct_28d: prot28.pct, target_g: targets.protein },
+        top_foods_28d: topFoods,
+        weight: lastWeigh ? { last_weigh_lb: lastWeigh.weight_lb, last_weigh_date: lastWeigh.date, est_now_lb: estNow != null ? Number(estNow.toFixed(1)) : null } : null,
+        recovery: recAvg != null ? { avg_7d_pct: recAvg7, avg_14d_pct: recAvg } : null,
+      };
+      const res = await apiFetch(`${API}/api/extract-macros`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "coach", digest }),
+      });
+      const data = await res.json();
+      if (!res.ok || !Array.isArray(data.suggestions)) throw new Error(data.error || "Coach failed");
+      const result = { at: new Date().toISOString(), suggestions: data.suggestions };
+      setCoach(result);
+      try { localStorage.setItem("ai_coach_last", JSON.stringify(result)); } catch {}
+    } catch (err) {
+      setCoachError(err.message);
+    }
+    setCoachLoading(false);
+  };
+  const coachTone = (p) => p === 1 ? "#c97c7c" : p === 2 ? "#c9b078" : "#a8c078";
+  const coachCat = { macros: "MACROS", foods: "FOODS", general: "GENERAL" };
+
   return (
     <div>
       {/* Quick weigh-in */}
@@ -452,6 +507,41 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody }) {
                 <div style={{ fontSize: 12, color: "#4a4a4a", lineHeight: 1.6 }}>{a.text}</div>
               </div>
             ))
+          )}
+        </div>
+      )}
+
+      {/* AI Coach: food-specific + macro suggestions, generated on demand */}
+      {complete.length >= 7 && (
+        <div style={card}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: coach || coachError ? 12 : 0 }}>
+            <div style={{ ...lbl, marginBottom: 0 }}>AI COACH</div>
+            <button onClick={getCoaching} disabled={coachLoading}
+              style={{ background: coachLoading ? "#dcd5cf" : "#eaf2dc", color: coachLoading ? "#9a9a9a" : "#5a6a3a", border: "1px solid #3a4a1a", borderRadius: 6, padding: "6px 12px", fontFamily: "inherit", fontSize: 11, cursor: coachLoading ? "default" : "pointer" }}>
+              {coachLoading ? "ANALYZING…" : coach ? "REFRESH" : "GET COACHING"}
+            </button>
+          </div>
+          {coachError && <div style={{ fontSize: 11, color: "#c97c7c", lineHeight: 1.5 }}>{coachError}</div>}
+          {!coach && !coachError && !coachLoading && (
+            <div style={{ fontSize: 11, color: "#b8b8b8", lineHeight: 1.5, marginTop: 8 }}>
+              Sends your last 28 days (macros, foods, weight, recovery) to AI for specific adjustments: macro shifts, foods to eat more or less of, and habits worth changing.
+            </div>
+          )}
+          {coach && (
+            <>
+              {[...coach.suggestions].sort((a, b) => (a.priority || 3) - (b.priority || 3)).map((s, i, arr) => (
+                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: i < arr.length - 1 ? 12 : 0 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: 3, background: coachTone(s.priority), marginTop: 5, flexShrink: 0 }} />
+                  <div style={{ fontSize: 12, color: "#4a4a4a", lineHeight: 1.6 }}>
+                    <span style={{ fontSize: 9, color: "#9a9a9a", letterSpacing: 1, marginRight: 6 }}>{coachCat[s.category] || "TIP"}</span>
+                    {s.text}
+                  </div>
+                </div>
+              ))}
+              <div style={{ fontSize: 9, color: "#c8c8c8", marginTop: 10 }}>
+                generated {new Date(coach.at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} · AI-generated, sanity-check against the numbers above
+              </div>
+            </>
           )}
         </div>
       )}
@@ -1403,6 +1493,7 @@ export default function FoodTracker() {
         <InsightsTab
           bodyData={bodyData}
           allTimeData={allTimeData}
+          entries={entries}
           whoopData={whoopData}
           targets={targets}
           onLogBody={logBody}

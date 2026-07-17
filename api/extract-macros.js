@@ -38,6 +38,10 @@ async function handler(req, res) {
     return res.status(429).json({ error: `Rate limit: ${RATE_LIMIT_PER_MIN}/min. Wait ${rl.retryAfter}s.` });
   }
 
+  // action=coach → AI coaching suggestions from a client-built data digest.
+  // Folded into this function to stay under the Vercel Hobby 12-function cap.
+  if ((req.body || {}).action === 'coach') return handleCoach(req, res);
+
   const { text, image } = req.body || {};
   if (!text && !image) return res.status(400).json({ error: 'Provide text or image' });
 
@@ -109,6 +113,63 @@ Other rules:
     }
   } catch (e) {
     console.error('Extract error:', e.message);
+    return res.status(502).json({ error: e.message });
+  }
+}
+
+// ---- AI Coach: turns a digest of recent logs into concrete adjustments ----
+async function handleCoach(req, res) {
+  const { digest } = req.body || {};
+  if (!digest || typeof digest !== 'object') {
+    return res.status(400).json({ error: 'Provide digest object' });
+  }
+
+  const systemPrompt = `You are a blunt, evidence-based nutrition coach reviewing a client's food log data. The digest you receive contains: daily macro averages vs targets (7-day and 28-day windows), calorie deficit stats, the actual foods they logged most (with frequency and macro contribution), weight trend, and recovery data if available.
+
+Respond ONLY with valid JSON (no markdown, no code fence) in this exact shape:
+{"suggestions":[{"category":"macros"|"foods"|"general","priority":1|2|3,"text":"<suggestion>"}]}
+
+Rules:
+- 3 to 6 suggestions total. Priority 1 = do this first, 3 = nice to have.
+- At least one "foods" suggestion MUST reference specific foods from their actual log by name — which to eat more of, less of, or swap, and why (tie it to their macro gaps or calorie density).
+- "macros" suggestions: concrete numeric changes (e.g. shift 20g carbs to protein), grounded in the digest numbers. Never invent numbers not derivable from the digest.
+- "general" suggestions: timing, habits, logging quality — only if the data actually supports them.
+- Be direct and specific. No hedging, no generic advice like "eat more vegetables" unless their log shows a real gap. Every suggestion must cite the data that motivates it.
+- If the digest has too little data for a category, skip that category rather than padding.
+- Each text ≤ 280 chars.`;
+
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 1200,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: [{ type: 'text', text: `Client data digest:\n${JSON.stringify(digest)}` }] }],
+      }),
+    });
+    if (!r.ok) {
+      const err = await r.text();
+      console.error('Anthropic API error (coach):', r.status, err);
+      return res.status(502).json({ error: `Anthropic API ${r.status}` });
+    }
+    const data = await r.json();
+    const textOut = (data.content || []).find(b => b.type === 'text')?.text || '';
+    const cleaned = textOut.replace(/```json|```/g, '').trim();
+    try {
+      const parsed = JSON.parse(cleaned);
+      if (!Array.isArray(parsed.suggestions)) throw new Error('bad shape');
+      return res.json(parsed);
+    } catch {
+      return res.status(502).json({ error: 'AI returned non-JSON', raw: cleaned });
+    }
+  } catch (e) {
+    console.error('Coach error:', e.message);
     return res.status(502).json({ error: e.message });
   }
 }
