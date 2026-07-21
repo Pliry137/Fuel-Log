@@ -1220,54 +1220,9 @@ export default function FoodTracker() {
           </div>
         </div>
 
-        {/* Entries */}
-        <div style={{ marginBottom: 16 }}>
-          {todayEntries.length === 0 && <div style={{ textAlign: "center", color: "#b8b8b8", padding: "32px 0", fontSize: 13 }}>No entries for this date</div>}
-          {todayEntries.map(entry => (
-            <div key={entry.id} style={{ background: "#f5f1ec", border: `1px solid ${editingId === entry.id ? "#b8b8b8" : "#ece5df"}`, borderRadius: 10, padding: "14px 16px", marginBottom: 8 }}>
-              {editingId === entry.id ? (
-                <div>
-                  <div style={{ fontSize: 10, color: "#a8c078", letterSpacing: 2, marginBottom: 10 }}>EDIT</div>
-                  {[["Name","name","text"],["Calories","calories","number"],["Protein","protein","number"],["Carbs","carbs","number"],["Fat","fat","number"]].map(([label, key, type]) => (
-                    <div key={key} style={{ marginBottom: 8 }}>
-                      <div style={{ fontSize: 10, color: "#9a9a9a", marginBottom: 3 }}>{label.toUpperCase()}</div>
-                      <input type={type} value={editForm[key]} onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))} style={inputStyle} />
-                    </div>
-                  ))}
-                  <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                    <button onClick={saveEdit} style={{ flex: 1, background: "#a8c078", color: "#111", border: "none", borderRadius: 8, padding: "9px", fontFamily: "inherit", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>SAVE</button>
-                    <button onClick={() => setEditingId(null)} style={{ flex: 1, background: "#ffffff", color: "#7a7a7a", border: "1px solid #dcd5cf", borderRadius: 8, padding: "9px", fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>CANCEL</button>
-                    <button onClick={() => { handleDelete(entry.id); setEditingId(null); }} style={{ background: "#ffffff", color: "#c97c7c", border: "1px solid #dcd5cf", borderRadius: 8, padding: "9px 12px", fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>DELETE</button>
-                  </div>
-                </div>
-              ) : (
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ flex: 1, cursor: "pointer" }} onClick={() => startEdit(entry)}>
-                    <div style={{ fontSize: 14, color: "#2a2a2a", marginBottom: 4 }}>{entry.name}</div>
-                    <div style={{ fontSize: 11 }}>
-                      {entry.time && <span style={{ color: "#b8b8b8", marginRight: 10 }}>{entry.time}</span>}
-                      {entry.protein > 0 && <span style={{ color: "#a8c078", marginRight: 8 }}>{entry.protein}g P</span>}
-                      {entry.carbs > 0 && <span style={{ color: "#7a9ec0", marginRight: 8 }}>{entry.carbs}g C</span>}
-                      {entry.fat > 0 && <span style={{ color: "#c89878" }}>{entry.fat}g F</span>}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 16, color: "#a8c078", fontWeight: 500 }}>{entry.calories}</span>
-                    <button onClick={() => toggleFavorite(entry)} title={isFavorite(entry.name) ? "Remove from favorites" : "Save as favorite"}
-                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, padding: 0, lineHeight: 1, color: isFavorite(entry.name) ? "#c9b078" : "#b8b8b8" }}>
-                      {isFavorite(entry.name) ? "★" : "☆"}
-                    </button>
-                    <button onClick={() => startEdit(entry)} style={{ background: "none", border: "none", color: "#b8b8b8", cursor: "pointer", fontSize: 11, letterSpacing: 1 }}>EDIT</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
         {/* Add form */}
         {showForm ? (
-          <div style={{ background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 12, padding: 16 }}>
+          <div style={{ background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 12, padding: 16, marginBottom: 16 }}>
             <div style={{ fontSize: 10, color: "#a8c078", letterSpacing: 2, marginBottom: 14 }}>ADD ENTRY</div>
             {favorites.length > 0 && (
               <div style={{ marginBottom: 14 }}>
@@ -1324,12 +1279,57 @@ export default function FoodTracker() {
             </div>
           </div>
         ) : (
-          <button onClick={() => setShowForm(true)} style={{ width: "100%", background: "none", border: "1px dashed #dcd5cf", color: "#b8b8b8", borderRadius: 10, padding: "14px", fontFamily: "inherit", fontSize: 11, cursor: "pointer", letterSpacing: 2, marginTop: 4 }}
+          <button onClick={() => setShowForm(true)} style={{ width: "100%", background: "none", border: "1px dashed #dcd5cf", color: "#b8b8b8", borderRadius: 10, padding: "14px", fontFamily: "inherit", fontSize: 11, cursor: "pointer", letterSpacing: 2, marginBottom: 16 }}
             onMouseEnter={e => { e.target.style.borderColor = "#9a9a9a"; e.target.style.color = "#7a7a7a"; }}
             onMouseLeave={e => { e.target.style.borderColor = "#dcd5cf"; e.target.style.color = "#b8b8b8"; }}>
-            + ADD MANUALLY
+            + ADD
           </button>
         )}
+
+        {/* Entries */}
+        <div style={{ marginBottom: 16 }}>
+          {todayEntries.length === 0 && <div style={{ textAlign: "center", color: "#b8b8b8", padding: "32px 0", fontSize: 13 }}>No entries for this date</div>}
+          {todayEntries.map(entry => (
+            <div key={entry.id} style={{ background: "#f5f1ec", border: `1px solid ${editingId === entry.id ? "#b8b8b8" : "#ece5df"}`, borderRadius: 10, padding: "14px 16px", marginBottom: 8 }}>
+              {editingId === entry.id ? (
+                <div>
+                  <div style={{ fontSize: 10, color: "#a8c078", letterSpacing: 2, marginBottom: 10 }}>EDIT</div>
+                  {[["Name","name","text"],["Calories","calories","number"],["Protein","protein","number"],["Carbs","carbs","number"],["Fat","fat","number"]].map(([label, key, type]) => (
+                    <div key={key} style={{ marginBottom: 8 }}>
+                      <div style={{ fontSize: 10, color: "#9a9a9a", marginBottom: 3 }}>{label.toUpperCase()}</div>
+                      <input type={type} value={editForm[key]} onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))} style={inputStyle} />
+                    </div>
+                  ))}
+                  <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                    <button onClick={saveEdit} style={{ flex: 1, background: "#a8c078", color: "#111", border: "none", borderRadius: 8, padding: "9px", fontFamily: "inherit", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>SAVE</button>
+                    <button onClick={() => setEditingId(null)} style={{ flex: 1, background: "#ffffff", color: "#7a7a7a", border: "1px solid #dcd5cf", borderRadius: 8, padding: "9px", fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>CANCEL</button>
+                    <button onClick={() => { handleDelete(entry.id); setEditingId(null); }} style={{ background: "#ffffff", color: "#c97c7c", border: "1px solid #dcd5cf", borderRadius: 8, padding: "9px 12px", fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>DELETE</button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ flex: 1, cursor: "pointer" }} onClick={() => startEdit(entry)}>
+                    <div style={{ fontSize: 14, color: "#2a2a2a", marginBottom: 4 }}>{entry.name}</div>
+                    <div style={{ fontSize: 11 }}>
+                      {entry.time && <span style={{ color: "#b8b8b8", marginRight: 10 }}>{entry.time}</span>}
+                      {entry.protein > 0 && <span style={{ color: "#a8c078", marginRight: 8 }}>{entry.protein}g P</span>}
+                      {entry.carbs > 0 && <span style={{ color: "#7a9ec0", marginRight: 8 }}>{entry.carbs}g C</span>}
+                      {entry.fat > 0 && <span style={{ color: "#c89878" }}>{entry.fat}g F</span>}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 16, color: "#a8c078", fontWeight: 500 }}>{entry.calories}</span>
+                    <button onClick={() => toggleFavorite(entry)} title={isFavorite(entry.name) ? "Remove from favorites" : "Save as favorite"}
+                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, padding: 0, lineHeight: 1, color: isFavorite(entry.name) ? "#c9b078" : "#b8b8b8" }}>
+                      {isFavorite(entry.name) ? "★" : "☆"}
+                    </button>
+                    <button onClick={() => startEdit(entry)} style={{ background: "none", border: "none", color: "#b8b8b8", cursor: "pointer", fontSize: 11, letterSpacing: 1 }}>EDIT</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </>}
 
       {tab === "trends" && (
