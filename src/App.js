@@ -53,7 +53,7 @@ async function extractMacros({ text, image }) {
 // Full-res phone photos blow past Vercel's hard 4.5 MB body cap (413), and
 // HEIC library picks aren't accepted by the vision API — canvas re-encode
 // fixes both and cuts token cost. 1568px is the vision model's optimal max.
-const downscaleImage = (file, maxDim = 1568, quality = 0.8) => new Promise((resolve, reject) => {
+const downscaleImage = (file, maxDim = 1568, quality = 0.85) => new Promise((resolve, reject) => {
   const url = URL.createObjectURL(file);
   const img = new Image();
   img.onload = () => {

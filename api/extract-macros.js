@@ -55,7 +55,7 @@ async function handler(req, res) {
   userContent.push({
     type: 'text',
     text: image
-      ? `Look at this image. It's either (a) a nutrition label, (b) a packaged food, or (c) a meal on a plate. Identify which and return the macros.${userHint}`
+      ? `Look at this image. It's either (a) a nutrition label, (b) a packaged food, or (c) a meal on a plate. If a Nutrition Facts panel is legible ANYWHERE in the image, you MUST transcribe its printed values exactly — calories, protein, total carbs, total fat, serving size — digit by digit. Do NOT estimate macros from what kind of food it looks like when a label is readable; the label always wins. Before answering, re-read each number off the label and confirm your JSON matches it. Only estimate if no label is legible.${userHint}`
       : `Identify this food and estimate macros for a standard serving.${userHint}`,
   });
 
@@ -63,6 +63,8 @@ async function handler(req, res) {
 {"name":"short lowercase name (≤30 chars)","calories":<int>,"protein":<int>,"carbs":<int>,"fat":<int>,"unit":"<unit>","base_amount":<number>}
 
 The macros (calories/protein/carbs/fat) you return MUST be the values for exactly base_amount of unit.
+
+LABEL TRANSCRIPTION RULE (highest priority): if the image contains a legible Nutrition Facts panel, copy its printed values verbatim — do not substitute typical values for that food category. A "protein bar" whose label says 12g protein and 18g fat gets 12 and 18, not the numbers a typical protein bar would have. Use the label's serving size as unit/base_amount. If the product/brand name is visible on the packaging, use it in "name" instead of a generic category.
 
 Unit + base_amount rules (USE AMERICAN UNITS — oz, cups, tbsp — never grams/ml):
 - For prepackaged items (Quest bar, yogurt cup, can of soup, energy gel): unit="serving", base_amount=1.
@@ -92,7 +94,9 @@ Other rules:
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5',
+        // Images need real vision accuracy (label transcription) — use sonnet.
+        // Plain-text lookups ("6 oz salmon") are easy — haiku is fine and cheaper.
+        model: image ? 'claude-sonnet-4-5' : 'claude-haiku-4-5',
         max_tokens: 300,
         system: systemPrompt,
         messages: [{ role: 'user', content: userContent }],
