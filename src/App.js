@@ -40,11 +40,37 @@ async function extractMacros({ text, image }) {
     body: JSON.stringify({ text, image }),
     credentials: "same-origin", // browser sends fl_token cookie automatically
   });
-  if (!res.ok) throw new Error(`API ${res.status}`);
+  if (!res.ok) {
+    // Surface the server's error message when there is one — "API 502" alone is undebuggable
+    const detail = await res.json().then(d => d.error).catch(() => null);
+    throw new Error(detail ? `${detail} (${res.status})` : `API ${res.status}`);
+  }
   const data = await res.json();
   if (data.error) throw new Error(data.error);
   return data;
 }
+// Downscale an image file to a JPEG data URL before upload.
+// Full-res phone photos blow past Vercel's hard 4.5 MB body cap (413), and
+// HEIC library picks aren't accepted by the vision API — canvas re-encode
+// fixes both and cuts token cost. 1568px is the vision model's optimal max.
+const downscaleImage = (file, maxDim = 1568, quality = 0.8) => new Promise((resolve, reject) => {
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    try {
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    } catch (e) { reject(e); } finally { URL.revokeObjectURL(url); }
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Browser could not decode this image")); };
+  img.src = url;
+});
+
 // Read a File as a base64 data URL
 const fileToDataUrl = (file) => new Promise((resolve, reject) => {
   const r = new FileReader();
@@ -887,7 +913,7 @@ export default function FoodTracker() {
     if (!file) return;
     setLookingUp(true);
     try {
-      const dataUrl = await fileToDataUrl(file);
+      const dataUrl = await downscaleImage(file).catch(() => fileToDataUrl(file));
       const macros = await extractMacros({ image: dataUrl, text: form.name });
       openAiPortion(macros);
     } catch (err) { alert(`Photo extraction failed: ${err.message}`); }
