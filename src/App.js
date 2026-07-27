@@ -340,16 +340,30 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
     setSaving(false);
   };
 
+  // ---- Complete days only: drop today's row (it's partial) — but only if it IS today ----
+  const localToday = (() => { const d = new Date(); const p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; })();
+  const complete = allTimeData.length && allTimeData[allTimeData.length - 1].rawDate === localToday
+    ? allTimeData.slice(0, -1) : allTimeData;
+
+  // Cumulative deficit at-or-before a date. An exact-date lookup silently fell
+  // back to 0 for dates with no food entries (e.g. a weigh-in on an unlogged
+  // day), which subtracted the ENTIRE history's deficit from that weigh-in and
+  // made est-now wildly low. Nearest-prior-day is the honest value.
+  const cumAtOrBefore = (date) => {
+    let c = 0;
+    for (const row of allTimeData) {
+      if (row.rawDate <= date) c = row.cumulativeDeficit; else break;
+    }
+    return c;
+  };
+
   // ---- Deficit-predicted weight, anchored at first weigh-in ----
-  // cumulative deficit lookup by date from allTimeData
-  const cumByDate = {};
-  for (const row of allTimeData) cumByDate[row.rawDate] = row.cumulativeDeficit;
   const anchor = weighIns[0] || null;
   let chartData = [];
   if (anchor) {
-    const anchorCum = cumByDate[anchor.date] ?? 0;
+    const anchorCum = cumAtOrBefore(anchor.date);
     const actualByDate = Object.fromEntries(weighIns.map(w => [w.date, w.weight_lb]));
-    chartData = allTimeData
+    chartData = complete
       .filter(r => r.rawDate >= anchor.date)
       .map(r => ({
         date: r.date,
@@ -365,7 +379,6 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
   }
 
   // ---- Trailing deficit, 7- and 21-day windows → current rate + projections ----
-  const complete = allTimeData.slice(0, -1); // drop today (partial)
   const avgDeficitOver = (days) => {
     const win = complete.slice(-days);
     return win.length ? win.reduce((s, d) => s + d.deficit, 0) / win.length : 0;
@@ -378,7 +391,9 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
   // estimated current weight = last weigh-in minus deficit-predicted loss since then
   let estNow = null;
   if (lastWeigh) {
-    const sinceCum = (allTimeData.length ? allTimeData[allTimeData.length - 1].cumulativeDeficit : 0) - (cumByDate[lastWeigh.date] ?? 0);
+    // Only complete days count — today's partial log is not a real deficit yet.
+    const lastCompleteCum = complete.length ? complete[complete.length - 1].cumulativeDeficit : 0;
+    const sinceCum = Math.max(0, lastCompleteCum - cumAtOrBefore(lastWeigh.date));
     estNow = lastWeigh.weight_lb - sinceCum / 3500;
   }
   const projectTo = (target) => {

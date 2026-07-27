@@ -3,6 +3,15 @@ const { db } = require('./_db');
 
 const RATE_LIMIT_PER_MIN = 30; // max AI calls per IP per minute
 
+// Pull the JSON object out of a model reply that may have preamble/postamble.
+// Sonnet narrates more than haiku; requiring the WHOLE reply to be JSON caused
+// "AI returned non-JSON" failures even when valid JSON was present.
+const extractJson = (s) => {
+  const a = s.indexOf('{');
+  const b = s.lastIndexOf('}');
+  return a >= 0 && b > a ? s.slice(a, b + 1) : s;
+};
+
 async function checkRateLimit(req) {
   const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.headers['x-real-ip'] || 'unknown';
   const now = new Date();
@@ -97,7 +106,7 @@ Other rules:
         // Images need real vision accuracy (label transcription) — use sonnet.
         // Plain-text lookups ("6 oz salmon") are easy — haiku is fine and cheaper.
         model: image ? 'claude-sonnet-4-5' : 'claude-haiku-4-5',
-        max_tokens: 300,
+        max_tokens: 600,
         system: systemPrompt,
         messages: [{ role: 'user', content: userContent }],
       }),
@@ -109,7 +118,7 @@ Other rules:
     }
     const data = await r.json();
     const textOut = (data.content || []).find(b => b.type === 'text')?.text || '';
-    const cleaned = textOut.replace(/```json|```/g, '').trim();
+    const cleaned = extractJson(textOut.replace(/```json|```/g, '').trim());
     try {
       return res.json(JSON.parse(cleaned));
     } catch {
@@ -164,7 +173,7 @@ Rules:
     }
     const data = await r.json();
     const textOut = (data.content || []).find(b => b.type === 'text')?.text || '';
-    const cleaned = textOut.replace(/```json|```/g, '').trim();
+    const cleaned = extractJson(textOut.replace(/```json|```/g, '').trim());
     try {
       const parsed = JSON.parse(cleaned);
       if (!Array.isArray(parsed.suggestions)) throw new Error('bad shape');
