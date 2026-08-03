@@ -631,7 +631,7 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={lbl}>CURRENT TRAJECTORY</div>
             {!goalEdit && (
-              <button onClick={startGoalEdit} style={{ background: "none", border: "none", color: "#b8b8b8", cursor: "pointer", fontFamily: "inherit", fontSize: 9, letterSpacing: 1, padding: 0, marginBottom: 12 }}>
+              <button onClick={startGoalEdit} style={{ background: "#eaf2dc", border: "1px solid #c8d8a8", color: "#3a4a1a", borderRadius: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 10, letterSpacing: 1, padding: "4px 10px", marginBottom: 12 }}>
                 {goals.length ? "EDIT GOALS" : "+ SET GOALS"}
               </button>
             )}
