@@ -313,9 +313,23 @@ function SetupWizard({ me, onDone }) {
 
 // Insights: connects intake/burn data to actual body measurements.
 // Everything here is honest about what's measured vs. estimated.
-function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, entries }) {
+function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, entries, me, onSaveGoals }) {
   const [form, setForm] = useState({ weight: "", waist: "" });
   const [saving, setSaving] = useState(false);
+  // Per-user weight goals (label + lb), stored in user preferences.
+  const goals = (me?.preferences?.weight_goals || []).filter(g => g && g.weight);
+  const [goalEdit, setGoalEdit] = useState(null); // null | [{label, weight}]
+  const [goalSaving, setGoalSaving] = useState(false);
+  const startGoalEdit = () => setGoalEdit(goals.length ? goals.map(g => ({ label: g.label || "", weight: String(g.weight) })) : [{ label: "goal", weight: "" }]);
+  const saveGoalEdit = async () => {
+    const cleaned = goalEdit
+      .map(g => ({ label: (g.label || "goal").trim(), weight: parseFloat(g.weight) }))
+      .filter(g => g.weight > 0);
+    setGoalSaving(true);
+    await onSaveGoals(cleaned);
+    setGoalSaving(false);
+    setGoalEdit(null);
+  };
   // AI Coach: manual-only generation, last result cached in localStorage (no API cost to re-view).
   const [coach, setCoach] = useState(() => {
     try { return JSON.parse(localStorage.getItem("ai_coach_last")) || null; } catch { return null; }
@@ -614,7 +628,14 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
 
         {/* Rate + projections */}
         <div style={card}>
-          <div style={lbl}>CURRENT TRAJECTORY</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={lbl}>CURRENT TRAJECTORY</div>
+            {!goalEdit && (
+              <button onClick={startGoalEdit} style={{ background: "none", border: "none", color: "#b8b8b8", cursor: "pointer", fontFamily: "inherit", fontSize: 9, letterSpacing: 1, padding: 0, marginBottom: 12 }}>
+                {goals.length ? "EDIT GOALS" : "+ SET GOALS"}
+              </button>
+            )}
+          </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
             <div>
               <div style={{ fontSize: 28, fontWeight: 500, color: "#a8c078", lineHeight: 1 }}>{estNow != null ? estNow.toFixed(1) : "—"}</div>
@@ -630,12 +651,32 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
             </div>
           </div>
           <div style={{ borderTop: "1px solid #ece5df", paddingTop: 12, fontSize: 12, lineHeight: 1.9, color: "#6a6a6a" }}>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>195 lb (initial goal)</span><span style={{ color: "#2a2a2a", fontWeight: 500 }}>{projectTo(195) || "—"}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>187 lb (visible-abs range)</span><span style={{ color: "#2a2a2a", fontWeight: 500 }}>{projectTo(187) || "—"}</span>
-            </div>
+            {goalEdit ? (
+              <>
+                {goalEdit.map((g, i) => (
+                  <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
+                    <input value={g.label} placeholder="label (e.g. first goal)" onChange={e => setGoalEdit(ge => ge.map((x, j) => j === i ? { ...x, label: e.target.value } : x))} style={{ ...ip, flex: 2 }} />
+                    <input type="number" step="0.1" value={g.weight} placeholder="lb" onChange={e => setGoalEdit(ge => ge.map((x, j) => j === i ? { ...x, weight: e.target.value } : x))} style={{ ...ip, flex: 1 }} />
+                    <button onClick={() => setGoalEdit(ge => ge.filter((_, j) => j !== i))} style={{ background: "none", border: "none", color: "#c97c7c", cursor: "pointer", fontSize: 13, padding: "0 2px" }}>✕</button>
+                  </div>
+                ))}
+                {goalEdit.length < 4 && (
+                  <button onClick={() => setGoalEdit(ge => [...ge, { label: "", weight: "" }])} style={{ background: "none", border: "1px dashed #dcd5cf", color: "#b8b8b8", borderRadius: 6, padding: "4px 10px", fontFamily: "inherit", fontSize: 10, cursor: "pointer", letterSpacing: 1 }}>+ GOAL</button>
+                )}
+                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  <button onClick={saveGoalEdit} disabled={goalSaving} style={{ flex: 1, background: "#a8c078", color: "#111", border: "none", borderRadius: 6, padding: "8px", fontFamily: "inherit", fontSize: 11, fontWeight: 500, cursor: "pointer" }}>{goalSaving ? "…" : "SAVE"}</button>
+                  <button onClick={() => setGoalEdit(null)} style={{ flex: 1, background: "#ffffff", color: "#7a7a7a", border: "1px solid #dcd5cf", borderRadius: 6, padding: "8px", fontFamily: "inherit", fontSize: 11, cursor: "pointer" }}>CANCEL</button>
+                </div>
+              </>
+            ) : goals.length ? (
+              goals.map((g, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span>{g.weight} lb ({g.label})</span><span style={{ color: "#2a2a2a", fontWeight: 500 }}>{projectTo(Number(g.weight)) || "—"}</span>
+                </div>
+              ))
+            ) : (
+              <div style={{ fontSize: 11, color: "#b8b8b8", lineHeight: 1.5 }}>No goal weights set. Tap + SET GOALS to add yours — projections will show an ETA for each.</div>
+            )}
           </div>
           {lbsPerWeek > 2 && <div style={{ fontSize: 10, color: "#c9b078", marginTop: 10, lineHeight: 1.5 }}>⚠ Losing faster than ~2 lb/week risks muscle. Check protein before celebrating.</div>}
         </div>
@@ -1535,6 +1576,16 @@ export default function FoodTracker() {
           bodyData={bodyData}
           allTimeData={allTimeData}
           entries={entries}
+          me={me}
+          onSaveGoals={async (weight_goals) => {
+            const r = await apiFetch(`${API}/api/auth?action=preferences`, {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ weight_goals }),
+            });
+            const d = await r.json().catch(() => ({}));
+            if (d.ok) setMe(m => ({ ...m, preferences: d.preferences }));
+            else alert(d.error || "Failed to save goals");
+          }}
           whoopData={whoopData}
           targets={targets}
           onLogBody={logBody}
