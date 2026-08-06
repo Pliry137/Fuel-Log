@@ -331,9 +331,15 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
     setGoalEdit(null);
   };
   // AI Coach: manual-only generation, last result cached in localStorage (no API cost to re-view).
-  const [coach, setCoach] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("ai_coach_last")) || null; } catch { return null; }
-  });
+  // Cache is keyed per user — an unkeyed cache leaked one user's coaching to
+  // another login on the same device.
+  const coachKey = me?.id ? `ai_coach_${me.id}` : null;
+  const [coach, setCoach] = useState(null);
+  useEffect(() => {
+    try { localStorage.removeItem("ai_coach_last"); } catch {} // purge legacy unkeyed cache
+    if (!coachKey) { setCoach(null); return; }
+    try { setCoach(JSON.parse(localStorage.getItem(coachKey)) || null); } catch { setCoach(null); }
+  }, [coachKey]);
   const [coachLoading, setCoachLoading] = useState(false);
   const [coachError, setCoachError] = useState("");
 
@@ -516,7 +522,7 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
       if (!res.ok || !Array.isArray(data.suggestions)) throw new Error(data.error || "Coach failed");
       const result = { at: new Date().toISOString(), suggestions: data.suggestions };
       setCoach(result);
-      try { localStorage.setItem("ai_coach_last", JSON.stringify(result)); } catch {}
+      try { if (coachKey) localStorage.setItem(coachKey, JSON.stringify(result)); } catch {}
     } catch (err) {
       setCoachError(err.message);
     }
