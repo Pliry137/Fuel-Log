@@ -86,6 +86,31 @@ async function listUsers(req, res) {
   return res.json(data);
 }
 
+// Full data export for the logged-in user — the app's only unrecoverable
+// asset is this data; everything else is rebuildable from the repo.
+async function exportData(req, res) {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const [entries, body, whoop, targets, favorites] = await Promise.all([
+    db.from('entries').select('*').eq('user_id', user.id).order('date'),
+    db.from('body_log').select('*').eq('user_id', user.id).order('date'),
+    db.from('whoop').select('*').eq('user_id', user.id).order('date'),
+    db.from('targets').select('*').eq('user_id', user.id).maybeSingle(),
+    db.from('favorites').select('*').eq('user_id', user.id),
+  ]);
+  const payload = {
+    exported_at: new Date().toISOString(),
+    user: { id: user.id, name: user.name, preferences: user.preferences || {} },
+    targets: targets.data || null,
+    entries: entries.data || [],
+    body_log: body.data || [],
+    whoop: whoop.data || [],
+    favorites: favorites.data || [],
+  };
+  res.setHeader('Content-Disposition', `attachment; filename="fuel-log-export-${new Date().toISOString().slice(0, 10)}.json"`);
+  return res.json(payload);
+}
+
 module.exports = async function handler(req, res) {
   // Never cache auth responses
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
@@ -100,6 +125,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'GET') {
     if (action === 'me') return me(req, res);
     if (action === 'list-users') return listUsers(req, res);
+    if (action === 'export') return exportData(req, res);
   }
   res.setHeader('Allow', 'GET, POST');
   return res.status(405).json({ error: 'Unknown action or method' });

@@ -319,14 +319,18 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
   // Per-user weight goals (label + lb), stored in user preferences.
   const goals = (me?.preferences?.weight_goals || []).filter(g => g && g.weight);
   const [goalEdit, setGoalEdit] = useState(null); // null | [{label, weight}]
+  const [maintEdit, setMaintEdit] = useState("");
   const [goalSaving, setGoalSaving] = useState(false);
-  const startGoalEdit = () => setGoalEdit(goals.length ? goals.map(g => ({ label: g.label || "", weight: String(g.weight) })) : [{ label: "goal", weight: "" }]);
+  const startGoalEdit = () => {
+    setGoalEdit(goals.length ? goals.map(g => ({ label: g.label || "", weight: String(g.weight) })) : [{ label: "goal", weight: "" }]);
+    setMaintEdit(me?.preferences?.maintenance_kcal ? String(me.preferences.maintenance_kcal) : "");
+  };
   const saveGoalEdit = async () => {
     const cleaned = goalEdit
       .map(g => ({ label: (g.label || "goal").trim(), weight: parseFloat(g.weight) }))
       .filter(g => g.weight > 0);
     setGoalSaving(true);
-    await onSaveGoals(cleaned);
+    await onSaveGoals({ weight_goals: cleaned, maintenance_kcal: parseInt(maintEdit) || null });
     setGoalSaving(false);
     setGoalEdit(null);
   };
@@ -669,6 +673,10 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
                 {goalEdit.length < 4 && (
                   <button onClick={() => setGoalEdit(ge => [...ge, { label: "", weight: "" }])} style={{ background: "none", border: "1px dashed #dcd5cf", color: "#b8b8b8", borderRadius: 6, padding: "4px 10px", fontFamily: "inherit", fontSize: 10, cursor: "pointer", letterSpacing: 1 }}>+ GOAL</button>
                 )}
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontSize: 9, color: "#9a9a9a", letterSpacing: 1, marginBottom: 4 }}>MAINTENANCE (KCAL/DAY) — used as your burn on days without Whoop data</div>
+                  <input type="number" value={maintEdit} placeholder={`unset — falls back to ${targets.calories} (your intake target)`} onChange={e => setMaintEdit(e.target.value)} style={ip} />
+                </div>
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                   <button onClick={saveGoalEdit} disabled={goalSaving} style={{ flex: 1, background: "#a8c078", color: "#111", border: "none", borderRadius: 6, padding: "8px", fontFamily: "inherit", fontSize: 11, fontWeight: 500, cursor: "pointer" }}>{goalSaving ? "…" : "SAVE"}</button>
                   <button onClick={() => setGoalEdit(null)} style={{ flex: 1, background: "#ffffff", color: "#7a7a7a", border: "1px solid #dcd5cf", borderRadius: 6, padding: "8px", fontFamily: "inherit", fontSize: 11, cursor: "pointer" }}>CANCEL</button>
@@ -753,6 +761,13 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
           </div>
         </div>
       )}
+
+      {/* Data export — the log itself is the only unrecoverable asset */}
+      <div style={{ textAlign: "center", marginBottom: 8 }}>
+        <a href={`${API}/api/auth?action=export`} style={{ color: "#b8b8b8", fontSize: 10, letterSpacing: 1, textDecoration: "none", borderBottom: "1px dotted #dcd5cf" }}>
+          ⬇ EXPORT ALL MY DATA (JSON)
+        </a>
+      </div>
     </div>
   );
 }
@@ -891,11 +906,15 @@ export default function FoodTracker() {
 
   const allDates = [...new Set(entries.map(e => e.date))].sort();
   const last7 = allDates.slice(-7);
+  // Maintenance burn for days Whoop has no data. Falling back to the intake
+  // TARGET (an eating goal, not a burn) understated deficits by hundreds of
+  // kcal on unsynced days and polluted the cumulative trajectory.
+  const maintenanceKcal = parseInt(me?.preferences?.maintenance_kcal) || targets.calories;
   const buildRow = (date) => {
     const t = dayTotals(date);
     const w = whoopData[date];
     const burned = w?.burned || null;
-    const deficit = burned ? burned - t.calories : targets.calories - t.calories;
+    const deficit = burned ? burned - t.calories : maintenanceKcal - t.calories;
     return { date: fmt(date), rawDate: date, calories: t.calories, protein: t.protein, carbs: t.carbs, fat: t.fat, burned, deficit };
   };
   const trendData = last7.map(buildRow);
@@ -1583,10 +1602,10 @@ export default function FoodTracker() {
           allTimeData={allTimeData}
           entries={entries}
           me={me}
-          onSaveGoals={async (weight_goals) => {
+          onSaveGoals={async (prefs) => {
             const r = await apiFetch(`${API}/api/auth?action=preferences`, {
               method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ weight_goals }),
+              body: JSON.stringify(prefs),
             });
             const d = await r.json().catch(() => ({}));
             if (d.ok) setMe(m => ({ ...m, preferences: d.preferences }));
