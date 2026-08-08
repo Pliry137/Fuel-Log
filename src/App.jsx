@@ -352,6 +352,7 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
   }, [coachKey]);
   const [coachLoading, setCoachLoading] = useState(false);
   const [coachError, setCoachError] = useState("");
+  const [notesEdit, setNotesEdit] = useState(null); // null | string being edited
 
   const card = { background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 12, padding: 16, marginBottom: 16 };
   const lbl = { fontSize: 10, color: "#6a6a6a", letterSpacing: 2, marginBottom: 12 };
@@ -492,6 +493,8 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
         top_foods_28d: topFoods,
         weight: lastWeigh ? { last_weigh_lb: lastWeigh.weight_lb, last_weigh_date: lastWeigh.date, est_now_lb: estNow != null ? Number(estNow.toFixed(1)) : null } : null,
         recovery: recAvg != null ? { avg_7d_pct: recAvg7, avg_14d_pct: recAvg } : null,
+        client_notes: me?.preferences?.coach_notes || null,
+        previous_suggestions: coach?.suggestions?.map(s => s.try || s.text).filter(Boolean) || [],
       };
       const res = await apiFetch(`${API}/api/extract-macros`, {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -561,6 +564,26 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
               {coachLoading ? "ANALYZING…" : coach ? "REFRESH" : "GET COACHING"}
             </button>
           </div>
+          {notesEdit == null ? (
+            <div style={{ fontSize: 10, color: "#b8b8b8", marginBottom: 10, lineHeight: 1.5 }}>
+              {me?.preferences?.coach_notes
+                ? <>COACH NOTES: {me.preferences.coach_notes} </>
+                : <>No coach notes — standing instructions the coach must respect (e.g. "cookies are budgeted, don't mention them"). </>}
+              <button onClick={() => setNotesEdit(me?.preferences?.coach_notes || "")} style={{ background: "none", border: "none", color: "#7a9ec0", cursor: "pointer", fontFamily: "inherit", fontSize: 10, padding: 0, textDecoration: "underline" }}>edit</button>
+            </div>
+          ) : (
+            <div style={{ marginBottom: 10 }}>
+              <textarea value={notesEdit} onChange={e => setNotesEdit(e.target.value)} rows={3} maxLength={500}
+                placeholder='e.g. Cookies are budgeted — never mention them. The shake recipe is fixed. I train mornings.'
+                style={{ width: "100%", background: "#faf7f2", border: "1px solid #dcd5cf", borderRadius: 6, padding: "8px 10px", color: "#2a2a2a", fontFamily: "inherit", fontSize: 12, resize: "vertical", boxSizing: "border-box" }} />
+              <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                <button onClick={async () => { await onSaveGoals({ coach_notes: notesEdit.trim() || null }); setNotesEdit(null); }}
+                  style={{ background: "#a8c078", color: "#111", border: "none", borderRadius: 6, padding: "6px 14px", fontFamily: "inherit", fontSize: 11, cursor: "pointer" }}>SAVE</button>
+                <button onClick={() => setNotesEdit(null)}
+                  style={{ background: "#ffffff", color: "#7a7a7a", border: "1px solid #dcd5cf", borderRadius: 6, padding: "6px 14px", fontFamily: "inherit", fontSize: 11, cursor: "pointer" }}>CANCEL</button>
+              </div>
+            </div>
+          )}
           {coachError && <div style={{ fontSize: 11, color: "#c97c7c", lineHeight: 1.5 }}>{coachError}</div>}
           {!coach && !coachError && !coachLoading && (
             <div style={{ fontSize: 11, color: "#b8b8b8", lineHeight: 1.5, marginTop: 8 }}>
@@ -570,11 +593,17 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
           {coach && (
             <>
               {[...coach.suggestions].sort((a, b) => (a.priority || 3) - (b.priority || 3)).map((s, i, arr) => (
-                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: i < arr.length - 1 ? 12 : 0 }}>
+                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: i < arr.length - 1 ? 14 : 0 }}>
                   <div style={{ width: 6, height: 6, borderRadius: 3, background: coachTone(s.priority), marginTop: 5, flexShrink: 0 }} />
                   <div style={{ fontSize: 12, color: "#4a4a4a", lineHeight: 1.6 }}>
                     <span style={{ fontSize: 9, color: "#9a9a9a", letterSpacing: 1, marginRight: 6 }}>{coachCat[s.category] || "TIP"}</span>
-                    {s.text}
+                    {s.text ? s.text : (
+                      <>
+                        {s.observation}
+                        {s.why && <div style={{ color: "#8a8a8a", fontSize: 11, marginTop: 2 }}>why: {s.why}</div>}
+                        {s.try && <div style={{ color: "#5a6a3a", marginTop: 2 }}>try: {s.try}</div>}
+                      </>
+                    )}
                   </div>
                 </div>
               ))}
