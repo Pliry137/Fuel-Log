@@ -3,6 +3,7 @@ import {
   dayDeficit, completeRows, cumAtOrBefore, avgDeficitOver,
   deficitToLbsPerWeek, estimateCurrentWeight, weeksToGoal,
   protStats, avgLastN,
+  medianIntake, lowLogThreshold, isSuspiciouslyLow, suspiciousLowDays,
 } from './insights.js';
 
 // Build rows from [{date, deficit, protein?}] with running cumulativeDeficit.
@@ -162,5 +163,36 @@ describe('avgLastN', () => {
   });
   it('null on empty', () => {
     expect(avgLastN([], 7)).toBeNull();
+  });
+});
+
+describe('under-logging challenge', () => {
+  const mkCal = (cals) => cals.map((c, i) => ({ rawDate: `2026-08-${String(i + 1).padStart(2, '0')}`, calories: c, deficit: 0, cumulativeDeficit: 0, protein: 0 }));
+
+  it('medianIntake: odd and even counts', () => {
+    expect(medianIntake(mkCal([1800, 2000, 1900]))).toBe(1900);
+    expect(medianIntake(mkCal([1800, 2000, 1900, 2100]))).toBe(1950);
+  });
+  it('medianIntake ignores zero-cal (unlogged) days', () => {
+    expect(medianIntake(mkCal([0, 1800, 0, 2000]))).toBe(1900);
+  });
+  it('medianIntake: null with no data', () => {
+    expect(medianIntake([])).toBeNull();
+    expect(medianIntake(mkCal([0, 0]))).toBeNull();
+  });
+  it('threshold is 60% of median with a 1200 floor', () => {
+    expect(lowLogThreshold(1900)).toBe(1200);   // 60% = 1140 → floor wins
+    expect(lowLogThreshold(2400)).toBe(1440);
+    expect(lowLogThreshold(null)).toBe(1200);
+  });
+  it('flags a low day but never a zero (unlogged) day', () => {
+    expect(isSuspiciouslyLow(900, 1200)).toBe(true);
+    expect(isSuspiciouslyLow(1300, 1200)).toBe(false);
+    expect(isSuspiciouslyLow(0, 1200)).toBe(false);
+  });
+  it('suspiciousLowDays windows and collects dates', () => {
+    const rows = mkCal([1800, 900, 1900, 800, 2000]);
+    expect(suspiciousLowDays(rows, 5, 1200)).toEqual(['2026-08-02', '2026-08-04']);
+    expect(suspiciousLowDays(rows, 2, 1200)).toEqual(['2026-08-04']);
   });
 });

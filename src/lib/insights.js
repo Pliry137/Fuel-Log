@@ -81,3 +81,32 @@ export function avgLastN(values, n) {
   const win = values.slice(-n);
   return win.length ? Math.round(win.reduce((a, b) => a + b, 0) / win.length) : null;
 }
+
+// ---- Under-logging challenge ----
+// A day logged far below the user's own typical intake is more likely a leaky
+// log than a heroic fast. Threshold is per-user (median-relative) so each
+// account gets challenged against their own normal.
+
+// Median calories over the trailing N complete days (ignores zero-cal days —
+// those are "didn't log", a different problem than "logged too little").
+export function medianIntake(complete, days = 30) {
+  const vals = complete.slice(-days).map(r => r.calories).filter(c => c > 0).sort((a, b) => a - b);
+  if (!vals.length) return null;
+  const mid = Math.floor(vals.length / 2);
+  return vals.length % 2 ? vals[mid] : Math.round((vals[mid - 1] + vals[mid]) / 2);
+}
+
+// Below 60% of your own median is suspicious; floor of 1200 so a low-median
+// stretch can't drag the threshold into absurdity.
+export function lowLogThreshold(median) {
+  return median ? Math.max(1200, Math.round(median * 0.6)) : 1200;
+}
+
+export function isSuspiciouslyLow(calories, threshold) {
+  return calories > 0 && calories < threshold;
+}
+
+// Dates in the trailing window that look under-logged.
+export function suspiciousLowDays(complete, days, threshold) {
+  return complete.slice(-days).filter(r => isSuspiciouslyLow(r.calories, threshold)).map(r => r.rawDate);
+}

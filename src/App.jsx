@@ -4,6 +4,7 @@ import {
   dayDeficit, completeRows, cumAtOrBefore, avgDeficitOver,
   deficitToLbsPerWeek, estimateCurrentWeight, weeksToGoal,
   protStats as protStatsOver, avgLastN,
+  medianIntake, lowLogThreshold, isSuspiciouslyLow, suspiciousLowDays,
 } from "./lib/insights.js";
 
 const API = "";  // empty = same host
@@ -452,6 +453,13 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
       adjustments.push({ tone: "#c9b078", text: `Scale is ${(lastBoth.actual - lastBoth.predicted).toFixed(1)} lb above what your logged deficit predicts. Most likely you're under-logging intake — audit oils, sauces, and bites you don't weigh.` });
     }
   }
+  {
+    // Under-logging pattern: multiple days far below this user's own median.
+    const lowDays = suspiciousLowDays(complete, 7, lowLogThreshold(medianIntake(complete, 30)));
+    if (lowDays.length >= 2) {
+      adjustments.push({ tone: "#c9b078", text: `${lowDays.length} of the last 7 days logged far below your typical intake (${lowDays.map(d => fmt(d)).join(", ")}). Big deficits on paper that don't show on the scale are usually unlogged food, not discipline — recheck those days.` });
+    }
+  }
 
   // ---- AI Coach: build a compact digest of the last 28 days and ask the API ----
   const getCoaching = async () => {
@@ -895,6 +903,15 @@ export default function FoodTracker() {
   const cumDeficit = allTimeData.length ? allTimeData[allTimeData.length - 1].cumulativeDeficit : 0;
   const cumLbs = Number((cumDeficit / 3500).toFixed(2));
 
+  // Under-logging challenge: flag a viewed day whose total is far below this
+  // user's own typical intake. Fires on past days, or today after 8pm —
+  // never nags mid-morning when the day is legitimately still small.
+  const medianCal = medianIntake(completeRows(allTimeData, today), 30);
+  const lowThresh = lowLogThreshold(medianCal);
+  const dayLooksUnderLogged =
+    (selectedDate < today || (selectedDate === today && new Date().getHours() >= 20)) &&
+    isSuspiciouslyLow(totals.calories, lowThresh);
+
   // Autocomplete: most-recent entry per unique food name, sorted by frequency desc
   const pastFoods = (() => {
     const byName = new Map(); // name → { count, last entry }
@@ -1268,6 +1285,11 @@ export default function FoodTracker() {
             );
           })()}
         </div>
+        {dayLooksUnderLogged && (
+          <div style={{ background: "#fdf6ec", border: "1px solid #c9b078", borderRadius: 10, padding: "10px 14px", marginBottom: 12, fontSize: 12, color: "#8a7440", lineHeight: 1.6 }}>
+            ⚠ Only <b>{totals.calories} kcal</b> logged{selectedDate === today ? " today" : " this day"} — your typical day is ~{medianCal}. Did everything make it in? Oils, dressings, drinks, bites while cooking. A day that looks like a big deficit but isn't will quietly wreck your trend math.
+          </div>
+        )}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 8 }}>
           <div style={{ fontSize: 10, color: "#dcd5cf", letterSpacing: 1 }}>TARGETS: {targets.calories} · {targets.protein}P · {targets.carbs}C · {targets.fat}F</div>
           <div style={{ display: "flex", gap: 6 }}>
