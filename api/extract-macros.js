@@ -1,4 +1,4 @@
-const { requireUser } = require('./_auth');
+const { requireUser, constantEq } = require('./_auth');
 const { db } = require('./_db');
 
 const RATE_LIMIT_PER_MIN = 30; // max AI calls per IP per minute
@@ -30,6 +30,12 @@ async function checkRateLimit(req) {
 }
 
 async function handler(req, res) {
+  // Secret-keyed weekly report for the scheduled AI-feedback review.
+  // No user cookie (scheduled sessions can't log in) — gated by REPORT_SECRET.
+  if (req.method === 'GET' && (req.query?.action || '') === 'feedback-report') {
+    return handleFeedbackReport(req, res);
+  }
+
   const user = await requireUser(req, res);
   if (!user) return;
   if (req.method !== 'POST') {
@@ -133,6 +139,41 @@ Other rules:
     console.error('Extract error:', e.message);
     return res.status(502).json({ error: e.message });
   }
+}
+
+// Aggregated feedback for the weekly automated review. Anonymizes users.
+async function handleFeedbackReport(req, res) {
+  const expected = (process.env.REPORT_SECRET || '').trim();
+  const provided = ((req.query?.key || '') + '').trim();
+  if (!expected || !constantEq(provided, expected)) return res.status(404).send('Not Found');
+
+  const days = Math.min(parseInt(req.query?.days) || 7, 30);
+  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const { data, error } = await db.from('ai_feedback')
+    .select('*').gte('created_at', since)
+    .order('created_at', { ascending: false }).limit(200);
+  if (error) return res.status(500).json({ error: error.message });
+
+  const rows = data || [];
+  const userLabels = {};
+  for (const r of rows) {
+    if (!userLabels[r.user_id]) userLabels[r.user_id] = `user-${Object.keys(userLabels).length + 1}`;
+  }
+  const corrections = rows.filter(r => r.corrected);
+  return res.json({
+    window_days: days,
+    total: rows.length,
+    corrected: corrections.length,
+    accuracy_pct: rows.length ? Math.round(100 * (rows.length - corrections.length) / rows.length) : null,
+    by_source: {
+      photo: { total: rows.filter(r => r.source === 'photo').length, corrected: corrections.filter(r => r.source === 'photo').length },
+      text: { total: rows.filter(r => r.source === 'text').length, corrected: corrections.filter(r => r.source === 'text').length },
+    },
+    corrections: corrections.slice(0, 50).map(r => ({
+      user: userLabels[r.user_id], source: r.source, input_hint: r.input_hint,
+      ai_result: r.ai_result, final_result: r.final_result, created_at: r.created_at,
+    })),
+  });
 }
 
 // ---- AI feedback loop: log AI guess vs what the user saved ----
