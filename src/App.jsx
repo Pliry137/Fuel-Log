@@ -1,5 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import {
+  dayDeficit, completeRows, cumAtOrBefore, avgDeficitOver,
+  deficitToLbsPerWeek, estimateCurrentWeight, weeksToGoal,
+  protStats as protStatsOver, avgLastN,
+} from "./lib/insights.js";
 
 const API = "";  // empty = same host
 // Auth lives in an HttpOnly cookie set by /api/login. Browser sends it
@@ -364,28 +369,15 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
     setSaving(false);
   };
 
-  // ---- Complete days only: drop today's row (it's partial) — but only if it IS today ----
+  // ---- All math below lives in src/lib/insights.js (unit-tested) ----
   const localToday = (() => { const d = new Date(); const p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; })();
-  const complete = allTimeData.length && allTimeData[allTimeData.length - 1].rawDate === localToday
-    ? allTimeData.slice(0, -1) : allTimeData;
-
-  // Cumulative deficit at-or-before a date. An exact-date lookup silently fell
-  // back to 0 for dates with no food entries (e.g. a weigh-in on an unlogged
-  // day), which subtracted the ENTIRE history's deficit from that weigh-in and
-  // made est-now wildly low. Nearest-prior-day is the honest value.
-  const cumAtOrBefore = (date) => {
-    let c = 0;
-    for (const row of allTimeData) {
-      if (row.rawDate <= date) c = row.cumulativeDeficit; else break;
-    }
-    return c;
-  };
+  const complete = completeRows(allTimeData, localToday);
 
   // ---- Deficit-predicted weight, anchored at first weigh-in ----
   const anchor = weighIns[0] || null;
   let chartData = [];
   if (anchor) {
-    const anchorCum = cumAtOrBefore(anchor.date);
+    const anchorCum = cumAtOrBefore(complete, anchor.date);
     const actualByDate = Object.fromEntries(weighIns.map(w => [w.date, w.weight_lb]));
     chartData = complete
       .filter(r => r.rawDate >= anchor.date)
@@ -403,53 +395,28 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
   }
 
   // ---- Trailing deficit, 7- and 21-day windows → current rate + projections ----
-  const avgDeficitOver = (days) => {
-    const win = complete.slice(-days);
-    return win.length ? win.reduce((s, d) => s + d.deficit, 0) / win.length : 0;
-  };
-  const avgDeficit = avgDeficitOver(21);
-  const avgDeficit7 = avgDeficitOver(7);
-  const lbsPerWeek = (avgDeficit * 7) / 3500;
-  const lbsPerWeek7 = (avgDeficit7 * 7) / 3500;
+  const avgDeficit = avgDeficitOver(complete, 21);
+  const avgDeficit7 = avgDeficitOver(complete, 7);
+  const lbsPerWeek = deficitToLbsPerWeek(avgDeficit);
+  const lbsPerWeek7 = deficitToLbsPerWeek(avgDeficit7);
   const lastWeigh = weighIns[weighIns.length - 1] || null;
-  // estimated current weight = last weigh-in minus deficit-predicted loss since then
-  let estNow = null;
-  if (lastWeigh) {
-    // Only complete days count — today's partial log is not a real deficit yet.
-    const lastCompleteCum = complete.length ? complete[complete.length - 1].cumulativeDeficit : 0;
-    const sinceCum = Math.max(0, lastCompleteCum - cumAtOrBefore(lastWeigh.date));
-    estNow = lastWeigh.weight_lb - sinceCum / 3500;
-  }
+  const estNow = estimateCurrentWeight(lastWeigh, complete);
   const projectTo = (target) => {
-    if (estNow == null || lbsPerWeek <= 0 || estNow <= target) return null;
-    const weeks = (estNow - target) / lbsPerWeek;
+    const weeks = weeksToGoal(estNow, lbsPerWeek, target);
+    if (weeks == null) return null;
     const d = new Date(Date.now() + weeks * 7 * 86400000);
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: weeks > 26 ? "numeric" : undefined });
   };
 
   // ---- Protein adherence, last 7 + last 28 complete days ----
-  const protStats = (days) => {
-    const win = complete.slice(-days);
-    const hit = win.filter(d => d.protein >= targets.protein).length;
-    return {
-      n: win.length,
-      hit,
-      pct: win.length ? Math.round((hit / win.length) * 100) : 0,
-      avg: win.length ? Math.round(win.reduce((s, d) => s + d.protein, 0) / win.length) : 0,
-    };
-  };
-  const prot7 = protStats(7);
-  const prot28 = protStats(28);
+  const prot7 = protStatsOver(complete, 7, targets.protein);
+  const prot28 = protStatsOver(complete, 28, targets.protein);
   const protColorFor = (pct) => pct >= 70 ? "#a8c078" : pct >= 50 ? "#c9b078" : "#c97c7c";
 
   // ---- Recovery trend, 7- and 14-day windows ----
-  const recDates = Object.keys(whoopData).filter(d => whoopData[d]?.recovery != null).sort();
-  const recAvgOver = (days) => {
-    const win = recDates.slice(-days).map(d => whoopData[d].recovery);
-    return win.length ? Math.round(win.reduce((a, b) => a + b, 0) / win.length) : null;
-  };
-  const recAvg = recAvgOver(14);
-  const recAvg7 = recAvgOver(7);
+  const recValues = Object.keys(whoopData).filter(d => whoopData[d]?.recovery != null).sort().map(d => whoopData[d].recovery);
+  const recAvg = avgLastN(recValues, 14);
+  const recAvg7 = avgLastN(recValues, 7);
   const recColorFor = (v) => v >= 67 ? "#a8c078" : v >= 34 ? "#c9b078" : "#c97c7c";
 
   // ---- Adjustments: what the last 7 days say to change ----
@@ -914,7 +881,7 @@ export default function FoodTracker() {
     const t = dayTotals(date);
     const w = whoopData[date];
     const burned = w?.burned || null;
-    const deficit = burned ? burned - t.calories : maintenanceKcal - t.calories;
+    const deficit = dayDeficit(t.calories, burned, maintenanceKcal);
     return { date: fmt(date), rawDate: date, calories: t.calories, protein: t.protein, carbs: t.carbs, fat: t.fat, burned, deficit };
   };
   const trendData = last7.map(buildRow);

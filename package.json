@@ -16,11 +16,13 @@
     "preview": "vite preview",
     "server": "node server.js",
     "dev": "concurrently \"npm start\" \"npm run server\"",
-    "setup": "npm install && npm run build && npm run server"
+    "setup": "npm install && npm run build && npm run server",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.0.5",
     "concurrently": "^8.2.0",
-    "vite": "^8.2.1"
+    "vite": "^8.2.1",
+    "vitest": "^4.1.10"
   }
 }
