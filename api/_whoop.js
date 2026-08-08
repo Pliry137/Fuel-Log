@@ -42,11 +42,31 @@ module.exports.getValidAccessToken = async (userId) => {
   const expiresAt = new Date(auth.expires_at).getTime();
   if (expiresAt > now + 60_000) return auth.access_token;
 
-  const tokens = await module.exports.exchangeToken({
-    grant_type: 'refresh_token',
-    refresh_token: auth.refresh_token,
-    scope: 'offline',
-  });
+  let tokens;
+  try {
+    tokens = await module.exports.exchangeToken({
+      grant_type: 'refresh_token',
+      refresh_token: auth.refresh_token,
+      scope: 'offline',
+    });
+  } catch (e) {
+    // Whoop refresh tokens are single-use (rotated on every refresh). If a
+    // concurrent sync (cron + app-load + manual button) already used this one,
+    // its replacement is in the DB — re-read before declaring failure.
+    const { data: retry } = await db
+      .from('whoop_auth').select('*').eq('user_id', userId).maybeSingle();
+    if (retry && new Date(retry.expires_at).getTime() > now + 60_000 && retry.access_token !== auth.access_token) {
+      return retry.access_token;
+    }
+    // Token is genuinely dead (rotation desync or revoked). Clear the row so
+    // status reports disconnected and the CONNECT WHOOP button comes back,
+    // instead of every sync failing forever.
+    if (/ 40[01] /.test(` ${e.message} `) || /invalid_request|invalid_grant/.test(e.message)) {
+      await db.from('whoop_auth').delete().eq('user_id', userId);
+      throw new Error('Whoop connection expired — tap CONNECT WHOOP to re-link.');
+    }
+    throw e;
+  }
   await db.from('whoop_auth').update({
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token,
