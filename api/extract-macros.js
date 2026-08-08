@@ -36,6 +36,11 @@ async function handler(req, res) {
     res.setHeader('Allow', 'POST');
     return res.status(405).end();
   }
+  // Feedback capture: what the AI guessed vs what the user actually saved.
+  // No Anthropic call and no rate-limit charge — handled before both.
+  if ((req.body || {}).action === 'feedback') return handleFeedback(req, res, user);
+  if ((req.body || {}).action === 'feedback-list') return handleFeedbackList(req, res, user);
+
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.status(503).json({ error: 'AI extraction not configured (missing ANTHROPIC_API_KEY)' });
   }
@@ -128,6 +133,43 @@ Other rules:
     console.error('Extract error:', e.message);
     return res.status(502).json({ error: e.message });
   }
+}
+
+// ---- AI feedback loop: log AI guess vs what the user saved ----
+// Corrections are ground truth about extraction failures. Mine them
+// periodically and bake recurring failure patterns into the prompts above.
+async function handleFeedback(req, res, user) {
+  const { source, input_hint, corrected, ai_result, final_result } = req.body || {};
+  if (!ai_result || !final_result || !['photo', 'text'].includes(source)) {
+    return res.status(400).json({ error: 'Need source (photo|text), ai_result, final_result' });
+  }
+  const { error } = await db.from('ai_feedback').insert({
+    user_id: user.id,
+    source,
+    input_hint: (input_hint || '').slice(0, 200) || null,
+    corrected: !!corrected,
+    ai_result,
+    final_result,
+  });
+  // Table may not exist until the migration runs — degrade silently, this is
+  // telemetry, not a feature the user should see fail.
+  if (error) return res.json({ ok: false, error: error.message });
+  return res.json({ ok: true });
+}
+
+async function handleFeedbackList(req, res, user) {
+  const { data, error } = await db.from('ai_feedback')
+    .select('*').eq('user_id', user.id)
+    .order('created_at', { ascending: false }).limit(100);
+  if (error) return res.status(500).json({ error: error.message });
+  const rows = data || [];
+  const corrections = rows.filter(r => r.corrected);
+  return res.json({
+    total: rows.length,
+    corrected: corrections.length,
+    accuracy_pct: rows.length ? Math.round(100 * (rows.length - corrections.length) / rows.length) : null,
+    rows,
+  });
 }
 
 // ---- AI Coach: turns a digest of recent logs into concrete adjustments ----

@@ -766,6 +766,7 @@ export default function FoodTracker() {
   const [favoriteModal, setFavoriteModal] = useState(null); // { fav, editing }
   const [aiPortion, setAiPortion] = useState(null); // { name, unit, base_amount, calories, ... }
   const [aiAmount, setAiAmount] = useState("");
+  const aiTraceRef = useRef(null); // last AI fill, compared against what actually gets saved
   const [targets, setTargets] = useState({ calories: 2175, protein: 168, carbs: 185, fat: 68 });
   const [showWhoopPrompt, setShowWhoopPrompt] = useState(false);
   const [whoopDate, setWhoopDate] = useState(yesterday);
@@ -958,8 +959,8 @@ export default function FoodTracker() {
 
   // After AI returns macros, open the portion modal so the user can confirm
   // the amount (and see what unit/base AI used) before the macros land in the form.
-  const openAiPortion = (macros) => {
-    setAiPortion(macros);
+  const openAiPortion = (macros, source, hint) => {
+    setAiPortion({ ...macros, _source: source, _hint: hint || "" });
     setAiAmount(String(macros.base_amount || 1));
   };
 
@@ -968,7 +969,7 @@ export default function FoodTracker() {
     setLookingUp(true);
     try {
       const macros = await extractMacros({ text: form.name });
-      openAiPortion(macros);
+      openAiPortion(macros, "text", form.name);
     } catch (e) { alert(`Lookup failed: ${e.message}`); }
     setLookingUp(false);
   };
@@ -980,7 +981,7 @@ export default function FoodTracker() {
     try {
       const dataUrl = await downscaleImage(file).catch(() => fileToDataUrl(file));
       const macros = await extractMacros({ image: dataUrl, text: form.name });
-      openAiPortion(macros);
+      openAiPortion(macros, "photo", form.name);
     } catch (err) { alert(`Photo extraction failed: ${err.message}`); }
     setLookingUp(false);
     e.target.value = ""; // allow re-upload of same file
@@ -997,14 +998,27 @@ export default function FoodTracker() {
     const finalName = isServing
       ? (amt === 1 ? aiPortion.name : `${aiPortion.name} (x${amt})`)
       : `${aiPortion.name} ${amt}${aiPortion.unit}`;
+    const scaled = {
+      calories: Math.round((aiPortion.calories || 0) * scale),
+      protein: Math.round((aiPortion.protein || 0) * scale),
+      carbs: Math.round((aiPortion.carbs || 0) * scale),
+      fat: Math.round((aiPortion.fat || 0) * scale),
+    };
     setForm(f => ({
       ...f,
       name: finalName,
-      calories: String(Math.round((aiPortion.calories || 0) * scale)),
-      protein: String(Math.round((aiPortion.protein || 0) * scale)),
-      carbs: String(Math.round((aiPortion.carbs || 0) * scale)),
-      fat: String(Math.round((aiPortion.fat || 0) * scale)),
+      calories: String(scaled.calories),
+      protein: String(scaled.protein),
+      carbs: String(scaled.carbs),
+      fat: String(scaled.fat),
     }));
+    // Remember what the AI filled in, so handleAdd can log any correction the
+    // user makes before saving — that delta is training data for the prompts.
+    aiTraceRef.current = {
+      source: aiPortion._source || "text",
+      input_hint: aiPortion._hint || "",
+      ai_result: { name: finalName, amount: amt, unit: aiPortion.unit, per_base: { calories: aiPortion.calories, protein: aiPortion.protein, carbs: aiPortion.carbs, fat: aiPortion.fat, base_amount: aiPortion.base_amount }, ...scaled },
+    };
     setAiPortion(null);
   };
 
@@ -1064,6 +1078,18 @@ export default function FoodTracker() {
     const res = await apiFetch(`${API}/api/entries`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     const entry = await res.json();
     setEntries(prev => [...prev, entry]);
+    // AI feedback loop: if this entry started as an AI fill, log guess vs saved.
+    const trace = aiTraceRef.current;
+    if (trace) {
+      aiTraceRef.current = null;
+      const t = trace.ai_result;
+      const corrected = t.calories !== payload.calories || t.protein !== payload.protein ||
+                        t.carbs !== payload.carbs || t.fat !== payload.fat || t.name !== payload.name;
+      apiFetch(`${API}/api/extract-macros`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "feedback", source: trace.source, input_hint: trace.input_hint, corrected, ai_result: trace.ai_result, final_result: payload }),
+      }).catch(() => {});
+    }
     setForm({ name: "", calories: "", protein: "", carbs: "", fat: "" });
     setShowForm(false);
   };
@@ -1371,7 +1397,7 @@ export default function FoodTracker() {
             ))}
             <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
               <button onClick={handleAdd} disabled={!form.name || !form.calories} style={{ flex: 1, background: form.name && form.calories ? "#a8c078" : "#dcd5cf", color: form.name && form.calories ? "#111" : "#9a9a9a", border: "none", borderRadius: 8, padding: "10px", fontFamily: "inherit", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>ADD</button>
-              <button onClick={() => { setShowForm(false); setForm({ name: "", calories: "", protein: "", carbs: "", fat: "" }); }} style={{ flex: 1, background: "#ffffff", color: "#7a7a7a", border: "1px solid #dcd5cf", borderRadius: 8, padding: "10px", fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>CANCEL</button>
+              <button onClick={() => { setShowForm(false); setForm({ name: "", calories: "", protein: "", carbs: "", fat: "" }); aiTraceRef.current = null; }} style={{ flex: 1, background: "#ffffff", color: "#7a7a7a", border: "1px solid #dcd5cf", borderRadius: 8, padding: "10px", fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>CANCEL</button>
             </div>
           </div>
         ) : (
