@@ -803,6 +803,10 @@ export default function FoodTracker() {
   const [tab, setTab] = useState("log");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", calories: "", protein: "", carbs: "", fat: "" });
+  // Preparation context for AI lookups: null | "homemade" | "restaurant".
+  // Appended to the text sent to the AI so it doesn't have to guess prep style.
+  const [prepStyle, setPrepStyle] = useState(null);
+  const withPrep = (text) => (prepStyle ? `${text || ""} (${prepStyle} preparation)`.trim() : (text || ""));
   const [selectedDate, setSelectedDate] = useState(today);
   const [lookingUp, setLookingUp] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -997,8 +1001,9 @@ export default function FoodTracker() {
     if (!form.name) return;
     setLookingUp(true);
     try {
-      const macros = await extractMacros({ text: form.name });
-      openAiPortion(macros, "text", form.name);
+      const hint = withPrep(form.name);
+      const macros = await extractMacros({ text: hint });
+      openAiPortion(macros, "text", hint);
     } catch (e) { alert(`Lookup failed: ${e.message}`); }
     setLookingUp(false);
   };
@@ -1009,8 +1014,9 @@ export default function FoodTracker() {
     setLookingUp(true);
     try {
       const dataUrl = await downscaleImage(file).catch(() => fileToDataUrl(file));
-      const macros = await extractMacros({ image: dataUrl, text: form.name });
-      openAiPortion(macros, "photo", form.name);
+      const hint = withPrep(form.name);
+      const macros = await extractMacros({ image: dataUrl, text: hint });
+      openAiPortion(macros, "photo", hint);
     } catch (err) { alert(`Photo extraction failed: ${err.message}`); }
     setLookingUp(false);
     e.target.value = ""; // allow re-upload of same file
@@ -1120,6 +1126,7 @@ export default function FoodTracker() {
       }).catch(() => {});
     }
     setForm({ name: "", calories: "", protein: "", carbs: "", fat: "" });
+    setPrepStyle(null); // don't let a prep tag silently carry over to the next entry
     setShowForm(false);
   };
 
@@ -1416,6 +1423,14 @@ export default function FoodTracker() {
                   ))}
                 </div>
               )}
+              <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                {["homemade", "restaurant"].map(style => (
+                  <button key={style} type="button" onClick={() => setPrepStyle(p => (p === style ? null : style))}
+                    style={{ background: prepStyle === style ? "#eaf2dc" : "#ffffff", border: prepStyle === style ? "1px solid #3a4a1a" : "1px solid #dcd5cf", color: prepStyle === style ? "#3a4a1a" : "#9a9a9a", borderRadius: 16, padding: "4px 10px", fontFamily: "inherit", fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>
+                    {style === "homemade" ? "🏠 HOMEMADE" : "🍴 RESTAURANT"}
+                  </button>
+                ))}
+              </div>
               {!form.calories && <div style={{ fontSize: 10, color: "#b8b8b8", marginTop: 4 }}>Type to autocomplete · AI for text lookup · 📷 snap a photo · 🖼 pick from library</div>}
             </div>
             {[["Calories","calories","number"],["Protein (g)","protein","number"],["Carbs (g)","carbs","number"],["Fat (g)","fat","number"]].map(([label, key, type]) => (

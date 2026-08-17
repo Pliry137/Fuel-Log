@@ -84,7 +84,7 @@ async function handler(req, res) {
 
 The macros (calories/protein/carbs/fat) you return MUST be the values for exactly base_amount of unit.
 
-LABEL TRANSCRIPTION RULE (highest priority): if the image contains a legible Nutrition Facts panel, copy its printed values verbatim — do not substitute typical values for that food category. A "protein bar" whose label says 12g protein and 18g fat gets 12 and 18, not the numbers a typical protein bar would have. Use the label's serving size as unit/base_amount. If the product/brand name is visible on the packaging, use it in "name" instead of a generic category.
+LABEL TRANSCRIPTION RULE (highest priority): if the image contains a legible Nutrition Facts panel, copy its printed values verbatim — do not substitute typical values for that food category. A "protein bar" whose label says 12g protein and 18g fat gets 12 and 18, not the numbers a typical protein bar would have. Use the label's serving size as unit/base_amount. If the product/brand name is visible on the packaging, use it in "name" instead of a generic category. This applies ESPECIALLY to brands you recognize — products get reformulated, so your memorized nutrition for a named product is unreliable. The printed panel overrides your memory, not just generic estimates.
 
 Unit + base_amount rules (USE AMERICAN UNITS — oz, cups, tbsp — never grams/ml):
 - For prepackaged items (Quest bar, yogurt cup, can of soup, energy gel): unit="serving", base_amount=1.
@@ -100,8 +100,10 @@ Unit + base_amount rules (USE AMERICAN UNITS — oz, cups, tbsp — never grams/
 - For meals on a plate or restaurant orders: unit="serving", base_amount=1 (treat the whole visible plate as one serving).
 - If the user's text already specifies a quantity (e.g. "8oz salmon", "2 cups rice"), use THAT as base_amount and that as unit.
 - NEVER use "g" or "ml". If a unit doesn't fit cleanly above, fall back to "serving".
+- If the user gives a weight for meat/fish/poultry without saying "cooked", assume it is RAW weight and use raw-weight nutrition (e.g. 10 oz raw sirloin ≈ 550 cal, not the ~660 of 10 oz cooked).
 
 Other rules:
+- Preparation context: if the user's note says "restaurant preparation", "restaurant", or "takeout", assume restaurant cooking (added butter/oil, larger portions) and estimate calories 30-50% higher than a homemade equivalent. If it says "homemade", estimate home preparation without hidden fats. If neither is stated, estimate a midpoint — do NOT assume restaurant.
 - All numeric values are integers (round if needed). No quotes around numbers.
 - If portion is genuinely ambiguous, estimate conservatively and proceed. Only return {"error":"<short reason>"} if you truly can't identify the food.`;
 
