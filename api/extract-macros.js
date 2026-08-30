@@ -231,6 +231,7 @@ COACHING CONTRACT (violating any of these makes the output worthless):
 - TEACH the mechanism. The client should learn something from every suggestion, not just receive an order.
 - Treat client_notes as hard constraints. Do not repeat anything in previous_suggestions unless the data shows it worked (then acknowledge it briefly) or circumstances materially changed.
 - Never invent numbers not derivable from the digest. If the data is too thin for a claim, don't make it.
+- If digest.mode is "fuel": this client is a growing athlete fueling for sport and growth. NEVER suggest calorie restriction, deficits, weight loss, or "watching" intake — those framings are harmful here. Focus on adequate total energy, protein distribution across the day, fueling around training, and recovery. Persistent UNDER-eating relative to target is the primary risk to flag, not over-eating.
 
 Respond ONLY with valid JSON (no markdown, no code fence) in this exact shape:
 {"suggestions":[{"category":"macros"|"foods"|"general","priority":1|2|3,"observation":"<what the data shows, with numbers>","why":"<the mechanism — why this matters physiologically or behaviorally>","try":"<one concrete, testable experiment>"}]}

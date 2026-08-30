@@ -1,4 +1,4 @@
-const { requireUser } = require('./_auth');
+const { requireUser, resolveReadUser } = require('./_auth');
 const { db } = require('./_db');
 
 module.exports = async function handler(req, res) {
@@ -6,10 +6,12 @@ module.exports = async function handler(req, res) {
   if (!user) return;
 
   if (req.method === 'GET') {
+    const target = await resolveReadUser(req, user);
+    if (!target) return res.status(403).json({ error: 'Not authorized to view this user' });
     const { data, error } = await db
       .from('whoop')
       .select('date, recovery, strain, sleep, burned')
-      .eq('user_id', user.id);
+      .eq('user_id', target.id);
     if (error) return res.status(500).json({ error: error.message });
     const obj = {};
     for (const row of data) {

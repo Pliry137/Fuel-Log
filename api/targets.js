@@ -1,4 +1,4 @@
-const { requireUser } = require('./_auth');
+const { requireUser, resolveReadUser } = require('./_auth');
 const { db } = require('./_db');
 
 const DEFAULTS = { calories: 2175, protein: 168, carbs: 185, fat: 68 };
@@ -8,10 +8,12 @@ module.exports = async function handler(req, res) {
   if (!user) return;
 
   if (req.method === 'GET') {
+    const target = await resolveReadUser(req, user);
+    if (!target) return res.status(403).json({ error: 'Not authorized to view this user' });
     const { data } = await db
       .from('targets')
       .select('calories, protein, carbs, fat')
-      .eq('user_id', user.id)
+      .eq('user_id', target.id)
       .maybeSingle();
     // If user has no targets yet, return defaults (no error)
     return res.json(data || DEFAULTS);

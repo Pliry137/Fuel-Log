@@ -111,6 +111,20 @@ async function exportData(req, res) {
   return res.json(payload);
 }
 
+// Users who have granted THIS account read-only viewing (their
+// preferences.viewable_by contains our id). Returns their prefs too so the
+// viewer UI can respect the viewed user's mode/goals.
+async function viewableUsers(req, res) {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const { data, error } = await db.from('users').select('id, name, preferences');
+  if (error) return res.status(500).json({ error: error.message });
+  const list = (data || [])
+    .filter(u => Array.isArray(u.preferences?.viewable_by) && u.preferences.viewable_by.includes(user.id))
+    .map(u => ({ id: u.id, name: u.name, preferences: u.preferences || {} }));
+  return res.json(list);
+}
+
 module.exports = async function handler(req, res) {
   // Never cache auth responses
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
@@ -126,6 +140,7 @@ module.exports = async function handler(req, res) {
     if (action === 'me') return me(req, res);
     if (action === 'list-users') return listUsers(req, res);
     if (action === 'export') return exportData(req, res);
+    if (action === 'viewable') return viewableUsers(req, res);
   }
   res.setHeader('Allow', 'GET, POST');
   return res.status(405).json({ error: 'Unknown action or method' });

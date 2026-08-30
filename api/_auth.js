@@ -69,6 +69,21 @@ module.exports.requireUser = async (req, res) => {
 
 module.exports.notFound = (res) => res.status(404).send('Not Found');
 
+// Household read-only viewing: if ?view_as=<userId> is present, allow it only
+// when the TARGET user's preferences.viewable_by lists the viewer's id.
+// Returns { id, viewing } for read paths, or null when not authorized.
+// Write paths must never use this — they always act as the logged-in user.
+module.exports.resolveReadUser = async (req, user) => {
+  const viewAs = ((req.query?.view_as || '') + '').trim();
+  if (!viewAs || viewAs === user.id) return { id: user.id, viewing: false };
+  const { data } = await db
+    .from('users').select('id, preferences').eq('id', viewAs).maybeSingle();
+  if (data && Array.isArray(data.preferences?.viewable_by) && data.preferences.viewable_by.includes(user.id)) {
+    return { id: data.id, viewing: true };
+  }
+  return null;
+};
+
 // Cookie builders unchanged
 module.exports.buildAuthCookie = (token) =>
   `${COOKIE_NAME}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${365 * 24 * 3600}`;

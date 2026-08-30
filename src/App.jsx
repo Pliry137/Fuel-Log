@@ -319,7 +319,8 @@ function SetupWizard({ me, onDone }) {
 
 // Insights: connects intake/burn data to actual body measurements.
 // Everything here is honest about what's measured vs. estimated.
-function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, entries, me, onSaveGoals }) {
+function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, entries, me, onSaveGoals, readOnly }) {
+  const fuelMode = me?.preferences?.mode === "fuel";
   const [form, setForm] = useState({ weight: "", waist: "" });
   const [saving, setSaving] = useState(false);
   // Per-user weight goals (label + lb), stored in user preferences.
@@ -432,7 +433,7 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
       adjustments.push({ tone: "#a8c078", text: `Protein adherence is up (${prot7.pct}% this week vs ${prot28.pct}% over 28 days). Whatever you changed, keep it.` });
     }
   }
-  if (complete.length >= 7) {
+  if (complete.length >= 7 && !fuelMode) {
     if (lbsPerWeek7 > 2.2) {
       adjustments.push({ tone: "#c9b078", text: `This week's deficit projects -${lbsPerWeek7.toFixed(1)} lb/week — faster than the ~2 lb/week muscle-safe ceiling. Add ~${Math.round((avgDeficit7 - 1000) / 50) * 50} kcal/day back, ideally as protein or pre-workout carbs.` });
     } else if (avgDeficit7 <= 0) {
@@ -446,12 +447,19 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
   if (recAvg7 != null && recAvg != null && recAvg7 <= recAvg - 8 && recAvg7 < 50) {
     adjustments.push({ tone: "#c97c7c", text: `Recovery slid to ${recAvg7}% this week (from ${recAvg}% over 14 days). That's an overreach signal — eat at maintenance for 2–3 days and prioritize sleep before pushing the deficit again.` });
   }
-  {
+  if (!fuelMode) {
     // Scale vs deficit math: if actual weight runs above predicted, intake is under-logged.
     const both = chartData.filter(c => c.actual != null && c.predicted != null);
     const lastBoth = both[both.length - 1];
     if (lastBoth && lastBoth.actual - lastBoth.predicted > 1.5) {
       adjustments.push({ tone: "#c9b078", text: `Scale is ${(lastBoth.actual - lastBoth.predicted).toFixed(1)} lb above what your logged deficit predicts. Most likely you're under-logging intake — audit oils, sauces, and bites you don't weigh.` });
+    }
+  }
+  if (fuelMode && complete.length >= 5) {
+    const win = complete.slice(-7);
+    const avgCal = Math.round(win.reduce((s, d) => s + d.calories, 0) / win.length);
+    if (avgCal < targets.calories - 200) {
+      adjustments.push({ tone: "#c97c7c", text: `Averaging ${avgCal} kcal/day vs a ${targets.calories} fuel target this week. For a growing athlete, chronic under-fueling costs growth, recovery, and performance — this is the number to fix first.` });
     }
   }
   {
@@ -493,6 +501,7 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
         top_foods_28d: topFoods,
         weight: lastWeigh ? { last_weigh_lb: lastWeigh.weight_lb, last_weigh_date: lastWeigh.date, est_now_lb: estNow != null ? Number(estNow.toFixed(1)) : null } : null,
         recovery: recAvg != null ? { avg_7d_pct: recAvg7, avg_14d_pct: recAvg } : null,
+        mode: me?.preferences?.mode || "cut",
         client_notes: me?.preferences?.coach_notes || null,
         previous_suggestions: coach?.suggestions?.map(s => s.try || s.text).filter(Boolean) || [],
       };
@@ -515,8 +524,8 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
 
   return (
     <div>
-      {/* Quick weigh-in */}
-      <div style={card}>
+      {/* Quick weigh-in — hidden in read-only view (writes would land on the viewer) */}
+      {!readOnly && <div style={card}>
         <div style={{ ...lbl, color: "#a8c078" }}>LOG TODAY'S BODY DATA</div>
         <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
           <div style={{ flex: 1 }}>
@@ -533,7 +542,7 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
           </button>
         </div>
         {lastWeigh && <div style={{ fontSize: 10, color: "#b8b8b8", marginTop: 8 }}>last weigh-in: {lastWeigh.weight_lb} lb on {fmt(lastWeigh.date)}</div>}
-      </div>
+      </div>}
 
       {/* Adjustments: what the last 7 days say to change */}
       {complete.length >= 7 && (
@@ -555,7 +564,7 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
       )}
 
       {/* AI Coach: food-specific + macro suggestions, generated on demand */}
-      {complete.length >= 7 && (
+      {complete.length >= 7 && !readOnly && (
         <div style={card}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: coach || coachError ? 12 : 0 }}>
             <div style={{ ...lbl, marginBottom: 0 }}>AI COACH</div>
@@ -621,7 +630,7 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
         </div>
       )}
 
-      {weighIns.length > 0 && <>
+      {weighIns.length > 0 && !fuelMode && <>
         {/* Scale vs deficit math */}
         <div style={card}>
           <div style={lbl}>SCALE VS DEFICIT MATH</div>
@@ -644,7 +653,7 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
         <div style={card}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={lbl}>CURRENT TRAJECTORY</div>
-            {!goalEdit && (
+            {!goalEdit && !readOnly && (
               <button onClick={startGoalEdit} style={{ background: "#eaf2dc", border: "1px solid #c8d8a8", color: "#3a4a1a", borderRadius: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 10, letterSpacing: 1, padding: "4px 10px", marginBottom: 12 }}>
                 {goals.length ? "EDIT GOALS" : "+ SET GOALS"}
               </button>
@@ -792,6 +801,8 @@ export default function FoodTracker() {
   const [whoopStatus, setWhoopStatus] = useState(null);
   const [bodyData, setBodyData] = useState([]); // [{ date, weight_lb, waist_in }]
   const [me, setMe] = useState(null);  // { id, name, preferences }
+  const [viewable, setViewable] = useState([]); // accounts that granted us read-only viewing
+  const [viewAs, setViewAs] = useState(null);   // null = my own data | {id, name, preferences}
   const [favoriteModal, setFavoriteModal] = useState(null); // { fav, editing }
   const [aiPortion, setAiPortion] = useState(null); // { name, unit, base_amount, calories, ... }
   const [aiAmount, setAiAmount] = useState("");
@@ -826,15 +837,18 @@ export default function FoodTracker() {
 
     const loadAll = async (isInitial = false) => {
       try {
-        const [u, e, w, t, f, ws, b] = await Promise.all([
+        // Household viewing: read endpoints accept ?view_as= for authorized viewers
+        const va = viewAs ? `?view_as=${viewAs.id}` : "";
+        const [u, e, w, t, f, ws, b, vl] = await Promise.all([
           apiFetch(`${API}/api/auth?action=me`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
-          apiFetch(`${API}/api/entries`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
-          apiFetch(`${API}/api/whoop`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
-          apiFetch(`${API}/api/targets`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
-          apiFetch(`${API}/api/favorites`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
+          apiFetch(`${API}/api/entries${va}`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
+          apiFetch(`${API}/api/whoop${va}`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
+          apiFetch(`${API}/api/targets${va}`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
+          apiFetch(`${API}/api/favorites${va}`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
           apiFetch(`${API}/api/whoop-mgmt?action=status`).then(r => r.ok ? r.json() : { connected: false }),
           // Tolerate failure — body_log table may not exist until migration runs
-          apiFetch(`${API}/api/body`).then(r => r.ok ? r.json() : []).catch(() => []),
+          apiFetch(`${API}/api/body${va}`).then(r => r.ok ? r.json() : []).catch(() => []),
+          apiFetch(`${API}/api/auth?action=viewable`).then(r => r.ok ? r.json() : []).catch(() => []),
         ]);
         if (cancelled) return;
         setMe(u);
@@ -844,10 +858,11 @@ export default function FoodTracker() {
         setFavorites(f);
         setWhoopStatus(ws);
         setBodyData(Array.isArray(b) ? b : []);
+        setViewable(Array.isArray(vl) ? vl : []);
         setAuthed(true);
         setLoading(false);
         setTokenError("");
-        if (isInitial && !initialLoadDone.current) {
+        if (isInitial && !initialLoadDone.current && !viewAs) {
           initialLoadDone.current = true;
           const burnMethod = u?.preferences?.burn_method;
           if (burnMethod === "whoop") {
@@ -896,7 +911,7 @@ export default function FoodTracker() {
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onVisible);
     };
-  }, []);
+  }, [viewAs]);
 
   const dayEntries = (date) => entries.filter(e => e.date === date);
   const dayTotals = (date) => dayEntries(date).reduce((acc, e) => ({
@@ -1166,6 +1181,11 @@ export default function FoodTracker() {
 
   const calPct = Math.min((totals.calories / targets.calories) * 100, 100);
   const calOver = remaining.calories < 0;
+  // Viewing another account = read-only. Their prefs drive mode-specific UI.
+  const viewing = !!viewAs;
+  const profile = viewAs || me; // whose preferences shape the UI
+  const fuelMode = profile?.preferences?.mode === "fuel";
+  const overTone = fuelMode ? "#a8c078" : "#c97c7c"; // fueling: over target is not failure
 
   if (loading) return (
     <div style={{ minHeight: "100vh", background: "#faf7f2", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Mono', monospace", color: "#9a9a9a", fontSize: 12, letterSpacing: 2 }}>
@@ -1307,6 +1327,23 @@ export default function FoodTracker() {
         </div>
       </div>
 
+      {/* Household switcher: appears only when someone granted us viewing */}
+      {viewable.length > 0 && (
+        <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
+          <button onClick={() => setViewAs(null)}
+            style={{ background: !viewing ? "#a8c078" : "none", color: !viewing ? "#111" : "#9a9a9a", border: `1px solid ${!viewing ? "#a8c078" : "#dcd5cf"}`, borderRadius: 16, padding: "4px 12px", fontFamily: "inherit", fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>
+            {(me?.name || "ME").toUpperCase()}
+          </button>
+          {viewable.map(v => (
+            <button key={v.id} onClick={() => setViewAs(v)}
+              style={{ background: viewAs?.id === v.id ? "#7a9ec0" : "none", color: viewAs?.id === v.id ? "#fff" : "#9a9a9a", border: `1px solid ${viewAs?.id === v.id ? "#7a9ec0" : "#dcd5cf"}`, borderRadius: 16, padding: "4px 12px", fontFamily: "inherit", fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>
+              👁 {v.name.toUpperCase()}
+            </button>
+          ))}
+          {viewing && <span style={{ fontSize: 9, color: "#7a9ec0", letterSpacing: 1 }}>READ-ONLY VIEW</span>}
+        </div>
+      )}
+
       {tab === "log" && <>
         {/* Summary */}
         <div style={{ background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 12, padding: "20px", marginBottom: 12 }}>
@@ -1314,19 +1351,19 @@ export default function FoodTracker() {
             <div style={{ position: "relative", flexShrink: 0 }}>
               <svg width="80" height="80" viewBox="0 0 80 80">
                 <circle cx="40" cy="40" r="32" fill="none" stroke="#dcd5cf" strokeWidth="8" />
-                <circle cx="40" cy="40" r="32" fill="none" stroke={calOver ? "#c97c7c" : "#a8c078"} strokeWidth="8"
+                <circle cx="40" cy="40" r="32" fill="none" stroke={calOver ? overTone : "#a8c078"} strokeWidth="8"
                   strokeDasharray={`${2 * Math.PI * 32}`} strokeDashoffset={`${2 * Math.PI * 32 * (1 - calPct / 100)}`}
                   strokeLinecap="round" transform="rotate(-90 40 40)" style={{ transition: "stroke-dashoffset 0.5s ease" }} />
               </svg>
               <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ fontSize: 13, fontWeight: 500, color: calOver ? "#c97c7c" : "#a8c078" }}>{Math.round(calPct)}%</span>
+                <span style={{ fontSize: 13, fontWeight: 500, color: calOver ? overTone : "#a8c078" }}>{Math.round(calPct)}%</span>
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 36, fontWeight: 500, color: calOver ? "#c97c7c" : "#a8c078", lineHeight: 1 }}>{totals.calories}</div>
+              <div style={{ fontSize: 36, fontWeight: 500, color: calOver ? overTone : "#a8c078", lineHeight: 1 }}>{totals.calories}</div>
               <div style={{ fontSize: 11, color: "#9a9a9a", marginTop: 4 }}>of <span style={{ color: "#6a6a6a" }}>{targets.calories}</span> kcal target</div>
-              <div style={{ fontSize: 13, color: calOver ? "#c97c7c" : "#7a9ec0", marginTop: 6, fontWeight: 500 }}>
-                {calOver ? `▲ ${Math.abs(remaining.calories)} over` : `▼ ${remaining.calories} under`}
+              <div style={{ fontSize: 13, color: calOver ? overTone : "#7a9ec0", marginTop: 6, fontWeight: 500 }}>
+                {calOver ? (fuelMode ? `✓ target +${Math.abs(remaining.calories)}` : `▲ ${Math.abs(remaining.calories)} over`) : (fuelMode ? `▼ ${remaining.calories} to go` : `▼ ${remaining.calories} under`)}
               </div>
             </div>
           </div>
@@ -1355,7 +1392,7 @@ export default function FoodTracker() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 8 }}>
           <div style={{ fontSize: 10, color: "#dcd5cf", letterSpacing: 1 }}>TARGETS: {targets.calories} · {targets.protein}P · {targets.carbs}C · {targets.fat}F</div>
           <div style={{ display: "flex", gap: 6 }}>
-            {me?.preferences?.has_whoop && whoopStatus && !whoopStatus.connected && (
+            {!viewing && me?.preferences?.has_whoop && whoopStatus && !whoopStatus.connected && (
               <button onClick={async () => {
                 const r = await apiFetch(`${API}/api/whoop-mgmt?action=connect`);
                 const data = await r.json();
@@ -1363,7 +1400,7 @@ export default function FoodTracker() {
                 else alert(data.error || "Failed to start Whoop OAuth");
               }} style={{ background: "#eaf2dc", border: "1px solid #c8d8a8", color: "#3a4a1a", borderRadius: 6, padding: "4px 10px", fontFamily: "inherit", fontSize: 9, cursor: "pointer", letterSpacing: 1 }}>CONNECT WHOOP</button>
             )}
-            {me?.preferences?.has_whoop && whoopStatus && whoopStatus.connected && (
+            {!viewing && me?.preferences?.has_whoop && whoopStatus && whoopStatus.connected && (
               <button onClick={async () => {
                 const r = await apiFetch(`${API}/api/whoop-mgmt?action=sync&days=7`);
                 const data = await r.json();
@@ -1372,14 +1409,14 @@ export default function FoodTracker() {
               }} title={whoopStatus.last_sync_at ? `Last sync: ${new Date(whoopStatus.last_sync_at).toLocaleString()} — ${whoopStatus.last_sync_status}` : "Never synced yet"}
                 style={{ background: "none", border: "1px solid #dcd5cf", color: "#9a9a9a", borderRadius: 6, padding: "4px 10px", fontFamily: "inherit", fontSize: 9, cursor: "pointer", letterSpacing: 1 }}>SYNC WHOOP</button>
             )}
-            {me?.preferences?.burn_method && me.preferences.burn_method !== "none" && (
+            {!viewing && me?.preferences?.burn_method && me.preferences.burn_method !== "none" && (
               <button onClick={() => openWhoopPrompt(selectedDate)} style={{ background: "none", border: "1px solid #dcd5cf", color: "#9a9a9a", borderRadius: 6, padding: "4px 10px", fontFamily: "inherit", fontSize: 9, cursor: "pointer", letterSpacing: 1 }}>+ MANUAL</button>
             )}
           </div>
         </div>
 
         {/* Add form */}
-        {showForm ? (
+        {!viewing && (showForm ? (
           <div style={{ background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 12, padding: 16, marginBottom: 16 }}>
             <div style={{ fontSize: 10, color: "#a8c078", letterSpacing: 2, marginBottom: 14 }}>ADD ENTRY</div>
             {favorites.length > 0 && (
@@ -1450,7 +1487,7 @@ export default function FoodTracker() {
             onMouseLeave={e => { e.target.style.borderColor = "#dcd5cf"; e.target.style.color = "#b8b8b8"; }}>
             + ADD
           </button>
-        )}
+        ))}
 
         {/* Entries */}
         <div style={{ marginBottom: 16 }}>
@@ -1485,11 +1522,11 @@ export default function FoodTracker() {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ fontSize: 16, color: "#a8c078", fontWeight: 500 }}>{entry.calories}</span>
-                    <button onClick={() => toggleFavorite(entry)} title={isFavorite(entry.name) ? "Remove from favorites" : "Save as favorite"}
+                    {!viewing && <button onClick={() => toggleFavorite(entry)} title={isFavorite(entry.name) ? "Remove from favorites" : "Save as favorite"}
                       style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, padding: 0, lineHeight: 1, color: isFavorite(entry.name) ? "#c9b078" : "#b8b8b8" }}>
                       {isFavorite(entry.name) ? "★" : "☆"}
-                    </button>
-                    <button onClick={() => startEdit(entry)} style={{ background: "none", border: "none", color: "#b8b8b8", cursor: "pointer", fontSize: 11, letterSpacing: 1 }}>EDIT</button>
+                    </button>}
+                    {!viewing && <button onClick={() => startEdit(entry)} style={{ background: "none", border: "none", color: "#b8b8b8", cursor: "pointer", fontSize: 11, letterSpacing: 1 }}>EDIT</button>}
                   </div>
                 </div>
               )}
@@ -1501,8 +1538,8 @@ export default function FoodTracker() {
       {tab === "trends" && (
         <div>
           {trendData.length < 2 ? <div style={{ textAlign: "center", color: "#b8b8b8", padding: "48px 0" }}>Need at least 2 days of data</div> : <>
-            {/* Weekly deficit card */}
-            {(() => {
+            {/* Weekly deficit card — hidden in fuel mode (deficit is not the goal) */}
+            {!fuelMode && (() => {
               const weekCalories = trendData.reduce((s, d) => s + d.calories, 0);
               const weekBurned = trendData.reduce((s, d) => s + (d.burned || targets.calories), 0);
               const weekDeficit = weekBurned - weekCalories;
@@ -1579,8 +1616,8 @@ export default function FoodTracker() {
               </ResponsiveContainer>
             </div>
 
-            {/* Cumulative progress (all time) */}
-            {(() => {
+            {/* Cumulative progress (all time) — hidden in fuel mode */}
+            {!fuelMode && (() => {
               const surplus = cumDeficit < 0;
               return (
                 <div style={{ background: "#ffffff", border: `2px solid ${surplus ? "#f3d6d6" : "#dde8d6"}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
@@ -1601,8 +1638,8 @@ export default function FoodTracker() {
               );
             })()}
 
-            {/* Cumulative weight loss trend */}
-            <div style={{ background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+            {/* Cumulative weight loss trend — hidden in fuel mode */}
+            {!fuelMode && <div style={{ background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 12, padding: 16, marginBottom: 16 }}>
               <div style={{ fontSize: 10, color: "#6a6a6a", letterSpacing: 2, marginBottom: 4 }}>CUMULATIVE WEIGHT LOSS</div>
               <div style={{ fontSize: 10, color: "#b8b8b8", marginBottom: 16 }}>projected · based on 3500 cal ≈ 1 lb</div>
               <ResponsiveContainer width="100%" height={180}>
@@ -1613,7 +1650,7 @@ export default function FoodTracker() {
                   <Line type="monotone" dataKey="cumulativeLbs" stroke="#a8c078" strokeWidth={2} dot={{ fill: "#a8c078", r: 3 }} />
                 </LineChart>
               </ResponsiveContainer>
-            </div>
+            </div>}
 
             {/* Daily summary */}
             <div style={{ background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 12, padding: 16 }}>
@@ -1660,7 +1697,8 @@ export default function FoodTracker() {
           bodyData={bodyData}
           allTimeData={allTimeData}
           entries={entries}
-          me={me}
+          me={profile}
+          readOnly={viewing}
           onSaveGoals={async (prefs) => {
             const r = await apiFetch(`${API}/api/auth?action=preferences`, {
               method: "POST", headers: { "Content-Type": "application/json" },

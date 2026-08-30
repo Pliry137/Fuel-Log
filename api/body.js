@@ -2,7 +2,7 @@
 //   GET    /api/body            → all rows for user, ascending by date
 //   POST   /api/body            → upsert { date?, weight_lb?, waist_in? } (date defaults to today)
 //   DELETE /api/body?date=YYYY-MM-DD
-const { requireUser } = require('./_auth');
+const { requireUser, resolveReadUser } = require('./_auth');
 const { db } = require('./_db');
 
 module.exports = async function handler(req, res) {
@@ -11,10 +11,12 @@ module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
 
   if (req.method === 'GET') {
+    const target = await resolveReadUser(req, user);
+    if (!target) return res.status(403).json({ error: 'Not authorized to view this user' });
     const { data, error } = await db
       .from('body_log')
       .select('date, weight_lb, waist_in')
-      .eq('user_id', user.id)
+      .eq('user_id', target.id)
       .order('date');
     if (error) return res.status(500).json({ error: error.message });
     return res.json(data);
