@@ -113,10 +113,10 @@ function FavoritePortionModal({ state, setState, onLog, onSave }) {
   };
 
   const overlay = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 24 };
-  const card = { background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 16, padding: 22, width: "100%", maxWidth: 380 };
-  const lbl = { fontSize: 10, color: "#9a9a9a", letterSpacing: 2, marginBottom: 4 };
-  const ip = { width: "100%", background: "#faf7f2", border: "1px solid #dcd5cf", borderRadius: 6, padding: "10px 12px", fontFamily: "inherit", fontSize: 14, color: "#2a2a2a" };
-  const btn = (primary) => ({ flex: 1, background: primary ? "#a8c078" : "#ffffff", color: primary ? "#111" : "#7a7a7a", border: primary ? "none" : "1px solid #dcd5cf", borderRadius: 8, padding: "10px", fontFamily: "inherit", fontSize: 12, cursor: "pointer", letterSpacing: 1, textTransform: "uppercase" });
+  const card = { background: "#1d1f16", border: "1px solid #343729", borderRadius: 16, padding: 22, width: "100%", maxWidth: 380 };
+  const lbl = { fontSize: 10, color: "#8b8c7f", letterSpacing: 2, marginBottom: 4 };
+  const ip = { width: "100%", background: "#14150f", border: "1px solid #343729", borderRadius: 6, padding: "10px 12px", fontFamily: "inherit", fontSize: 14, color: "#ecebe2" };
+  const btn = (primary) => ({ flex: 1, background: primary ? "#b4cd85" : "#1d1f16", color: primary ? "#14150f" : "#a3a396", border: primary ? "none" : "1px solid #343729", borderRadius: 8, padding: "10px", fontFamily: "inherit", fontSize: 12, cursor: "pointer", letterSpacing: 1, textTransform: "uppercase" });
 
   const close = () => setState(null);
 
@@ -125,18 +125,18 @@ function FavoritePortionModal({ state, setState, onLog, onSave }) {
     return (
       <div style={overlay} onClick={close}>
         <div style={card} onClick={(e) => e.stopPropagation()}>
-          <div style={{ fontSize: 10, color: "#a8c078", letterSpacing: 3, marginBottom: 6 }}>LOG FAVORITE</div>
+          <div style={{ fontSize: 10, color: "#b4cd85", letterSpacing: 3, marginBottom: 6 }}>LOG FAVORITE</div>
           <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 4 }}>{fav.name}</div>
-          <div style={{ fontSize: 11, color: "#9a9a9a", marginBottom: 16 }}>
+          <div style={{ fontSize: 11, color: "#8b8c7f", marginBottom: 16 }}>
             {fav.calories} cal · {fav.protein}p / {fav.carbs}c / {fav.fat}f per {fav.base_amount || 1} {unitLabel}
           </div>
 
           <div style={lbl}>AMOUNT ({unitLabel.toUpperCase()})</div>
           <input type="number" step="any" autoFocus value={amount} onChange={(e) => setAmount(e.target.value)} style={ip} />
 
-          <div style={{ background: "#f5f1ec", borderRadius: 8, padding: 12, margin: "14px 0", fontSize: 13 }}>
-            <div style={{ fontSize: 10, color: "#9a9a9a", letterSpacing: 1, marginBottom: 4 }}>WILL LOG</div>
-            <div><strong style={{ color: "#a8c078" }}>{scaled.calories}</strong> cal · {scaled.protein}p / {scaled.carbs}c / {scaled.fat}f</div>
+          <div style={{ background: "#191b12", borderRadius: 8, padding: 12, margin: "14px 0", fontSize: 13 }}>
+            <div style={{ fontSize: 10, color: "#8b8c7f", letterSpacing: 1, marginBottom: 4 }}>WILL LOG</div>
+            <div><strong style={{ color: "#b4cd85" }}>{scaled.calories}</strong> cal · {scaled.protein}p / {scaled.carbs}c / {scaled.fat}f</div>
           </div>
 
           <div style={{ display: "flex", gap: 8 }}>
@@ -145,7 +145,7 @@ function FavoritePortionModal({ state, setState, onLog, onSave }) {
           </div>
 
           <div style={{ textAlign: "center", marginTop: 12 }}>
-            <button onClick={() => setEditing(true)} style={{ background: "none", border: "none", color: "#9a9a9a", fontSize: 11, cursor: "pointer", textDecoration: "underline" }}>edit favorite</button>
+            <button onClick={() => setEditing(true)} style={{ background: "none", border: "none", color: "#8b8c7f", fontSize: 11, cursor: "pointer", textDecoration: "underline" }}>edit favorite</button>
           </div>
         </div>
       </div>
@@ -156,7 +156,7 @@ function FavoritePortionModal({ state, setState, onLog, onSave }) {
   return (
     <div style={overlay} onClick={close}>
       <div style={card} onClick={(e) => e.stopPropagation()}>
-        <div style={{ fontSize: 10, color: "#a8c078", letterSpacing: 3, marginBottom: 12 }}>EDIT FAVORITE</div>
+        <div style={{ fontSize: 10, color: "#b4cd85", letterSpacing: 3, marginBottom: 12 }}>EDIT FAVORITE</div>
 
         <div style={lbl}>NAME</div>
         <input value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} style={{ ...ip, marginBottom: 10 }} />
@@ -181,7 +181,7 @@ function FavoritePortionModal({ state, setState, onLog, onSave }) {
           </div>
         </div>
 
-        <div style={{ fontSize: 11, color: "#9a9a9a", marginBottom: 10 }}>Macros below are PER {form.base_amount} {form.unit}.</div>
+        <div style={{ fontSize: 11, color: "#8b8c7f", marginBottom: 10 }}>Macros below are PER {form.base_amount} {form.unit}.</div>
 
         {[["Calories", "calories"], ["Protein (g)", "protein"], ["Carbs (g)", "carbs"], ["Fat (g)", "fat"]].map(([label, key]) => (
           <div key={key}>
@@ -256,18 +256,18 @@ function SetupWizard({ me, onDone }) {
     setSaving(false);
   };
 
-  const cardStyle = { background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 12, padding: 24, maxWidth: 480, width: "100%" };
-  const labelStyle = { fontSize: 10, color: "#9a9a9a", letterSpacing: 2, marginBottom: 6 };
-  const inputStyle = { width: "100%", background: "#faf7f2", border: "1px solid #dcd5cf", borderRadius: 6, padding: "10px 12px", fontFamily: "inherit", fontSize: 14, color: "#2a2a2a", marginBottom: 12 };
-  const btnStyle = (primary) => ({ flex: 1, background: primary ? "#a8c078" : "#ffffff", color: primary ? "#111" : "#9a9a9a", border: primary ? "none" : "1px solid #dcd5cf", borderRadius: 6, padding: "10px", fontFamily: "inherit", fontSize: 12, cursor: "pointer", letterSpacing: 1, textTransform: "uppercase" });
+  const cardStyle = { background: "#1d1f16", border: "1px solid #343729", borderRadius: 12, padding: 24, maxWidth: 480, width: "100%" };
+  const labelStyle = { fontSize: 10, color: "#8b8c7f", letterSpacing: 2, marginBottom: 6 };
+  const inputStyle = { width: "100%", background: "#14150f", border: "1px solid #343729", borderRadius: 6, padding: "10px 12px", fontFamily: "inherit", fontSize: 14, color: "#ecebe2", marginBottom: 12 };
+  const btnStyle = (primary) => ({ flex: 1, background: primary ? "#b4cd85" : "#1d1f16", color: primary ? "#14150f" : "#8b8c7f", border: primary ? "none" : "1px solid #343729", borderRadius: 6, padding: "10px", fontFamily: "inherit", fontSize: 12, cursor: "pointer", letterSpacing: 1, textTransform: "uppercase" });
 
   return (
-    <div style={{ minHeight: "100vh", background: "#faf7f2", color: "#2a2a2a", fontFamily: "'DM Mono', 'Courier New', monospace", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap'); input:focus { outline: none; border-color: #a8c078 !important; }`}</style>
+    <div style={{ minHeight: "100vh", background: "#14150f", color: "#ecebe2", fontFamily: "'DM Mono', 'Courier New', monospace", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap'); input:focus { outline: none; border-color: #b4cd85 !important; }`}</style>
       <div style={cardStyle}>
-        <div style={{ fontSize: 10, color: "#a8c078", letterSpacing: 3, marginBottom: 6 }}>FUEL LOG · WELCOME</div>
+        <div style={{ fontSize: 10, color: "#b4cd85", letterSpacing: 3, marginBottom: 6 }}>FUEL LOG · WELCOME</div>
         <div style={{ fontSize: 18, fontWeight: 500, marginBottom: 4 }}>Hi {me.name}, let's set up your account.</div>
-        <div style={{ fontSize: 11, color: "#9a9a9a", marginBottom: 20 }}>Step {step} of 2</div>
+        <div style={{ fontSize: 11, color: "#8b8c7f", marginBottom: 20 }}>Step {step} of 2</div>
 
         {step === 1 && (
           <>
@@ -293,8 +293,8 @@ function SetupWizard({ me, onDone }) {
               ["tdee", "Use a fixed daily estimate (TDEE)"],
               ["none", "Don't track burn"],
             ].map(([val, label]) => (
-              <div key={val} onClick={() => setBurnMethod(val)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: burnMethod === val ? "#eaf2dc" : "#faf7f2", border: `1px solid ${burnMethod === val ? "#a8c078" : "#dcd5cf"}`, borderRadius: 8, cursor: "pointer", marginBottom: 8, fontSize: 13 }}>
-                <span style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${burnMethod === val ? "#a8c078" : "#dcd5cf"}`, background: burnMethod === val ? "#a8c078" : "transparent" }} />
+              <div key={val} onClick={() => setBurnMethod(val)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: burnMethod === val ? "#262a1c" : "#14150f", border: `1px solid ${burnMethod === val ? "#b4cd85" : "#343729"}`, borderRadius: 8, cursor: "pointer", marginBottom: 8, fontSize: 13 }}>
+                <span style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${burnMethod === val ? "#b4cd85" : "#343729"}`, background: burnMethod === val ? "#b4cd85" : "transparent" }} />
                 {label}
               </div>
             ))}
@@ -355,9 +355,9 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
   const [coachError, setCoachError] = useState("");
   const [notesEdit, setNotesEdit] = useState(null); // null | string being edited
 
-  const card = { background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 12, padding: 16, marginBottom: 16 };
-  const lbl = { fontSize: 10, color: "#6a6a6a", letterSpacing: 2, marginBottom: 12 };
-  const ip = { width: "100%", background: "#faf7f2", border: "1px solid #dcd5cf", borderRadius: 6, padding: "8px 10px", color: "#2a2a2a", fontFamily: "'DM Mono', monospace", fontSize: 13 };
+  const card = { background: "#1d1f16", border: "1px solid #343729", borderRadius: 12, padding: 16, marginBottom: 16 };
+  const lbl = { fontSize: 10, color: "#b5b5a8", letterSpacing: 2, marginBottom: 12 };
+  const ip = { width: "100%", background: "#14150f", border: "1px solid #343729", borderRadius: 6, padding: "8px 10px", color: "#ecebe2", fontFamily: "'DM Mono', monospace", fontSize: 13 };
 
   const weighIns = bodyData.filter(b => b.weight_lb != null)
     .map(b => ({ ...b, weight_lb: parseFloat(b.weight_lb) }))
@@ -414,13 +414,13 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
   // ---- Protein adherence, last 7 + last 28 complete days ----
   const prot7 = protStatsOver(complete, 7, targets.protein);
   const prot28 = protStatsOver(complete, 28, targets.protein);
-  const protColorFor = (pct) => pct >= 70 ? "#a8c078" : pct >= 50 ? "#c9b078" : "#c97c7c";
+  const protColorFor = (pct) => pct >= 70 ? "#b4cd85" : pct >= 50 ? "#d4bd85" : "#d98b8b";
 
   // ---- Recovery trend, 7- and 14-day windows ----
   const recValues = Object.keys(whoopData).filter(d => whoopData[d]?.recovery != null).sort().map(d => whoopData[d].recovery);
   const recAvg = avgLastN(recValues, 14);
   const recAvg7 = avgLastN(recValues, 7);
-  const recColorFor = (v) => v >= 67 ? "#a8c078" : v >= 34 ? "#c9b078" : "#c97c7c";
+  const recColorFor = (v) => v >= 67 ? "#b4cd85" : v >= 34 ? "#d4bd85" : "#d98b8b";
 
   // ---- Adjustments: what the last 7 days say to change ----
   // Rule-based, only fires when there's enough data to mean something.
@@ -428,45 +428,45 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
   if (prot7.n >= 5) {
     const gap = targets.protein - prot7.avg;
     if (gap > 10) {
-      adjustments.push({ tone: "#c97c7c", text: `Protein is running ${gap}g/day short of ${targets.protein}g this week. Add one dense source daily (chicken breast, greek yogurt, shake) before changing anything else.` });
+      adjustments.push({ tone: "#d98b8b", text: `Protein is running ${gap}g/day short of ${targets.protein}g this week. Add one dense source daily (chicken breast, greek yogurt, shake) before changing anything else.` });
     } else if (prot7.pct >= prot28.pct + 15 && prot7.pct >= 70) {
-      adjustments.push({ tone: "#a8c078", text: `Protein adherence is up (${prot7.pct}% this week vs ${prot28.pct}% over 28 days). Whatever you changed, keep it.` });
+      adjustments.push({ tone: "#b4cd85", text: `Protein adherence is up (${prot7.pct}% this week vs ${prot28.pct}% over 28 days). Whatever you changed, keep it.` });
     }
   }
   if (complete.length >= 7 && !fuelMode) {
     if (lbsPerWeek7 > 2.2) {
-      adjustments.push({ tone: "#c9b078", text: `This week's deficit projects -${lbsPerWeek7.toFixed(1)} lb/week — faster than the ~2 lb/week muscle-safe ceiling. Add ~${Math.round((avgDeficit7 - 1000) / 50) * 50} kcal/day back, ideally as protein or pre-workout carbs.` });
+      adjustments.push({ tone: "#d4bd85", text: `This week's deficit projects -${lbsPerWeek7.toFixed(1)} lb/week — faster than the ~2 lb/week muscle-safe ceiling. Add ~${Math.round((avgDeficit7 - 1000) / 50) * 50} kcal/day back, ideally as protein or pre-workout carbs.` });
     } else if (avgDeficit7 <= 0) {
-      adjustments.push({ tone: "#c97c7c", text: `You averaged a surplus this week (${Math.round(-avgDeficit7)} kcal/day over maintenance). The 28-day trend can hide this — tighten intake or add activity now, not next week.` });
+      adjustments.push({ tone: "#d98b8b", text: `You averaged a surplus this week (${Math.round(-avgDeficit7)} kcal/day over maintenance). The 28-day trend can hide this — tighten intake or add activity now, not next week.` });
     } else if (lbsPerWeek7 < 0.4 && lbsPerWeek >= 0.75) {
-      adjustments.push({ tone: "#c9b078", text: `Your deficit shrank this week (~${Math.round(avgDeficit7)} kcal/day vs ~${Math.round(avgDeficit)} over 21 days). Recent changes are stalling progress — find the ~${Math.round(avgDeficit - avgDeficit7)} kcal/day that crept back in.` });
+      adjustments.push({ tone: "#d4bd85", text: `Your deficit shrank this week (~${Math.round(avgDeficit7)} kcal/day vs ~${Math.round(avgDeficit)} over 21 days). Recent changes are stalling progress — find the ~${Math.round(avgDeficit - avgDeficit7)} kcal/day that crept back in.` });
     } else if (avgDeficit7 >= avgDeficit + 150 && lbsPerWeek7 <= 2.2) {
-      adjustments.push({ tone: "#a8c078", text: `Deficit improved this week (~${Math.round(avgDeficit7)} vs ~${Math.round(avgDeficit)} kcal/day) and the pace is still muscle-safe. Adjustments are working — hold here.` });
+      adjustments.push({ tone: "#b4cd85", text: `Deficit improved this week (~${Math.round(avgDeficit7)} vs ~${Math.round(avgDeficit)} kcal/day) and the pace is still muscle-safe. Adjustments are working — hold here.` });
     }
   }
   if (recAvg7 != null && recAvg != null && recAvg7 <= recAvg - 8 && recAvg7 < 50) {
-    adjustments.push({ tone: "#c97c7c", text: `Recovery slid to ${recAvg7}% this week (from ${recAvg}% over 14 days). That's an overreach signal — eat at maintenance for 2–3 days and prioritize sleep before pushing the deficit again.` });
+    adjustments.push({ tone: "#d98b8b", text: `Recovery slid to ${recAvg7}% this week (from ${recAvg}% over 14 days). That's an overreach signal — eat at maintenance for 2–3 days and prioritize sleep before pushing the deficit again.` });
   }
   if (!fuelMode) {
     // Scale vs deficit math: if actual weight runs above predicted, intake is under-logged.
     const both = chartData.filter(c => c.actual != null && c.predicted != null);
     const lastBoth = both[both.length - 1];
     if (lastBoth && lastBoth.actual - lastBoth.predicted > 1.5) {
-      adjustments.push({ tone: "#c9b078", text: `Scale is ${(lastBoth.actual - lastBoth.predicted).toFixed(1)} lb above what your logged deficit predicts. Most likely you're under-logging intake — audit oils, sauces, and bites you don't weigh.` });
+      adjustments.push({ tone: "#d4bd85", text: `Scale is ${(lastBoth.actual - lastBoth.predicted).toFixed(1)} lb above what your logged deficit predicts. Most likely you're under-logging intake — audit oils, sauces, and bites you don't weigh.` });
     }
   }
   if (fuelMode && complete.length >= 5) {
     const win = complete.slice(-7);
     const avgCal = Math.round(win.reduce((s, d) => s + d.calories, 0) / win.length);
     if (avgCal < targets.calories - 200) {
-      adjustments.push({ tone: "#c97c7c", text: `Averaging ${avgCal} kcal/day vs a ${targets.calories} fuel target this week. For a growing athlete, chronic under-fueling costs growth, recovery, and performance — this is the number to fix first.` });
+      adjustments.push({ tone: "#d98b8b", text: `Averaging ${avgCal} kcal/day vs a ${targets.calories} fuel target this week. For a growing athlete, chronic under-fueling costs growth, recovery, and performance — this is the number to fix first.` });
     }
   }
   {
     // Under-logging pattern: multiple days far below this user's own median.
     const lowDays = suspiciousLowDays(complete, 7, lowLogThreshold(medianIntake(complete, 30)));
     if (lowDays.length >= 2) {
-      adjustments.push({ tone: "#c9b078", text: `${lowDays.length} of the last 7 days logged far below your typical intake (${lowDays.map(d => fmt(d)).join(", ")}). Big deficits on paper that don't show on the scale are usually unlogged food, not discipline — recheck those days.` });
+      adjustments.push({ tone: "#d4bd85", text: `${lowDays.length} of the last 7 days logged far below your typical intake (${lowDays.map(d => fmt(d)).join(", ")}). Big deficits on paper that don't show on the scale are usually unlogged food, not discipline — recheck those days.` });
     }
   }
 
@@ -519,29 +519,29 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
     }
     setCoachLoading(false);
   };
-  const coachTone = (p) => p === 1 ? "#c97c7c" : p === 2 ? "#c9b078" : "#a8c078";
+  const coachTone = (p) => p === 1 ? "#d98b8b" : p === 2 ? "#d4bd85" : "#b4cd85";
   const coachCat = { macros: "MACROS", foods: "FOODS", general: "GENERAL" };
 
   return (
     <div>
       {/* Quick weigh-in — hidden in read-only view (writes would land on the viewer) */}
       {!readOnly && <div style={card}>
-        <div style={{ ...lbl, color: "#a8c078" }}>LOG TODAY'S BODY DATA</div>
+        <div style={{ ...lbl, color: "#b4cd85" }}>LOG TODAY'S BODY DATA</div>
         <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 10, color: "#9a9a9a", marginBottom: 4 }}>WEIGHT (LB)</div>
+            <div style={{ fontSize: 10, color: "#8b8c7f", marginBottom: 4 }}>WEIGHT (LB)</div>
             <input type="number" step="0.1" value={form.weight} onChange={e => setForm(f => ({ ...f, weight: e.target.value }))} style={ip} />
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 10, color: "#9a9a9a", marginBottom: 4 }}>WAIST (IN)</div>
+            <div style={{ fontSize: 10, color: "#8b8c7f", marginBottom: 4 }}>WAIST (IN)</div>
             <input type="number" step="0.1" value={form.waist} onChange={e => setForm(f => ({ ...f, waist: e.target.value }))} style={ip} />
           </div>
           <button onClick={submit} disabled={saving || (!form.weight && !form.waist)}
-            style={{ background: (form.weight || form.waist) ? "#a8c078" : "#dcd5cf", color: (form.weight || form.waist) ? "#111" : "#9a9a9a", border: "none", borderRadius: 8, padding: "9px 16px", fontFamily: "inherit", fontSize: 12, fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap" }}>
+            style={{ background: (form.weight || form.waist) ? "#b4cd85" : "#343729", color: (form.weight || form.waist) ? "#14150f" : "#8b8c7f", border: "none", borderRadius: 8, padding: "9px 16px", fontFamily: "inherit", fontSize: 12, fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap" }}>
             {saving ? "…" : "SAVE"}
           </button>
         </div>
-        {lastWeigh && <div style={{ fontSize: 10, color: "#b8b8b8", marginTop: 8 }}>last weigh-in: {lastWeigh.weight_lb} lb on {fmt(lastWeigh.date)}</div>}
+        {lastWeigh && <div style={{ fontSize: 10, color: "#6d6e63", marginTop: 8 }}>last weigh-in: {lastWeigh.weight_lb} lb on {fmt(lastWeigh.date)}</div>}
       </div>}
 
       {/* Adjustments: what the last 7 days say to change */}
@@ -549,14 +549,14 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
         <div style={card}>
           <div style={lbl}>ADJUSTMENTS — BASED ON THE LAST 7 DAYS</div>
           {adjustments.length === 0 ? (
-            <div style={{ fontSize: 12, color: "#a8c078", lineHeight: 1.6 }}>
+            <div style={{ fontSize: 12, color: "#b4cd85", lineHeight: 1.6 }}>
               Nothing to change. Protein, deficit, and recovery are all inside their targets this week — stay the course.
             </div>
           ) : (
             adjustments.map((a, i) => (
               <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: i < adjustments.length - 1 ? 12 : 0 }}>
                 <div style={{ width: 6, height: 6, borderRadius: 3, background: a.tone, marginTop: 5, flexShrink: 0 }} />
-                <div style={{ fontSize: 12, color: "#4a4a4a", lineHeight: 1.6 }}>{a.text}</div>
+                <div style={{ fontSize: 12, color: "#d6d5ca", lineHeight: 1.6 }}>{a.text}</div>
               </div>
             ))
           )}
@@ -569,33 +569,33 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: coach || coachError ? 12 : 0 }}>
             <div style={{ ...lbl, marginBottom: 0 }}>AI COACH</div>
             <button onClick={getCoaching} disabled={coachLoading}
-              style={{ background: coachLoading ? "#dcd5cf" : "#eaf2dc", color: coachLoading ? "#9a9a9a" : "#5a6a3a", border: "1px solid #3a4a1a", borderRadius: 6, padding: "6px 12px", fontFamily: "inherit", fontSize: 11, cursor: coachLoading ? "default" : "pointer" }}>
+              style={{ background: coachLoading ? "#343729" : "#262a1c", color: coachLoading ? "#8b8c7f" : "#b9cf90", border: "1px solid #c9dd9e", borderRadius: 6, padding: "6px 12px", fontFamily: "inherit", fontSize: 11, cursor: coachLoading ? "default" : "pointer" }}>
               {coachLoading ? "ANALYZING…" : coach ? "REFRESH" : "GET COACHING"}
             </button>
           </div>
           {notesEdit == null ? (
-            <div style={{ fontSize: 10, color: "#b8b8b8", marginBottom: 10, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 10, color: "#6d6e63", marginBottom: 10, lineHeight: 1.5 }}>
               {me?.preferences?.coach_notes
                 ? <>COACH NOTES: {me.preferences.coach_notes} </>
                 : <>No coach notes — standing instructions the coach must respect (e.g. "cookies are budgeted, don't mention them"). </>}
-              <button onClick={() => setNotesEdit(me?.preferences?.coach_notes || "")} style={{ background: "none", border: "none", color: "#7a9ec0", cursor: "pointer", fontFamily: "inherit", fontSize: 10, padding: 0, textDecoration: "underline" }}>edit</button>
+              <button onClick={() => setNotesEdit(me?.preferences?.coach_notes || "")} style={{ background: "none", border: "none", color: "#8fb3d4", cursor: "pointer", fontFamily: "inherit", fontSize: 10, padding: 0, textDecoration: "underline" }}>edit</button>
             </div>
           ) : (
             <div style={{ marginBottom: 10 }}>
               <textarea value={notesEdit} onChange={e => setNotesEdit(e.target.value)} rows={3} maxLength={500}
                 placeholder='e.g. Cookies are budgeted — never mention them. The shake recipe is fixed. I train mornings.'
-                style={{ width: "100%", background: "#faf7f2", border: "1px solid #dcd5cf", borderRadius: 6, padding: "8px 10px", color: "#2a2a2a", fontFamily: "inherit", fontSize: 12, resize: "vertical", boxSizing: "border-box" }} />
+                style={{ width: "100%", background: "#14150f", border: "1px solid #343729", borderRadius: 6, padding: "8px 10px", color: "#ecebe2", fontFamily: "inherit", fontSize: 12, resize: "vertical", boxSizing: "border-box" }} />
               <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
                 <button onClick={async () => { await onSaveGoals({ coach_notes: notesEdit.trim() || null }); setNotesEdit(null); }}
-                  style={{ background: "#a8c078", color: "#111", border: "none", borderRadius: 6, padding: "6px 14px", fontFamily: "inherit", fontSize: 11, cursor: "pointer" }}>SAVE</button>
+                  style={{ background: "#b4cd85", color: "#14150f", border: "none", borderRadius: 6, padding: "6px 14px", fontFamily: "inherit", fontSize: 11, cursor: "pointer" }}>SAVE</button>
                 <button onClick={() => setNotesEdit(null)}
-                  style={{ background: "#ffffff", color: "#7a7a7a", border: "1px solid #dcd5cf", borderRadius: 6, padding: "6px 14px", fontFamily: "inherit", fontSize: 11, cursor: "pointer" }}>CANCEL</button>
+                  style={{ background: "#1d1f16", color: "#a3a396", border: "1px solid #343729", borderRadius: 6, padding: "6px 14px", fontFamily: "inherit", fontSize: 11, cursor: "pointer" }}>CANCEL</button>
               </div>
             </div>
           )}
-          {coachError && <div style={{ fontSize: 11, color: "#c97c7c", lineHeight: 1.5 }}>{coachError}</div>}
+          {coachError && <div style={{ fontSize: 11, color: "#d98b8b", lineHeight: 1.5 }}>{coachError}</div>}
           {!coach && !coachError && !coachLoading && (
-            <div style={{ fontSize: 11, color: "#b8b8b8", lineHeight: 1.5, marginTop: 8 }}>
+            <div style={{ fontSize: 11, color: "#6d6e63", lineHeight: 1.5, marginTop: 8 }}>
               Sends your last 28 days (macros, foods, weight, recovery) to AI for specific adjustments: macro shifts, foods to eat more or less of, and habits worth changing.
             </div>
           )}
@@ -604,19 +604,19 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
               {[...coach.suggestions].sort((a, b) => (a.priority || 3) - (b.priority || 3)).map((s, i, arr) => (
                 <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: i < arr.length - 1 ? 14 : 0 }}>
                   <div style={{ width: 6, height: 6, borderRadius: 3, background: coachTone(s.priority), marginTop: 5, flexShrink: 0 }} />
-                  <div style={{ fontSize: 12, color: "#4a4a4a", lineHeight: 1.6 }}>
-                    <span style={{ fontSize: 9, color: "#9a9a9a", letterSpacing: 1, marginRight: 6 }}>{coachCat[s.category] || "TIP"}</span>
+                  <div style={{ fontSize: 12, color: "#d6d5ca", lineHeight: 1.6 }}>
+                    <span style={{ fontSize: 9, color: "#8b8c7f", letterSpacing: 1, marginRight: 6 }}>{coachCat[s.category] || "TIP"}</span>
                     {s.text ? s.text : (
                       <>
                         {s.observation}
-                        {s.why && <div style={{ color: "#8a8a8a", fontSize: 11, marginTop: 2 }}>why: {s.why}</div>}
-                        {s.try && <div style={{ color: "#5a6a3a", marginTop: 2 }}>try: {s.try}</div>}
+                        {s.why && <div style={{ color: "#96968a", fontSize: 11, marginTop: 2 }}>why: {s.why}</div>}
+                        {s.try && <div style={{ color: "#b9cf90", marginTop: 2 }}>try: {s.try}</div>}
                       </>
                     )}
                   </div>
                 </div>
               ))}
-              <div style={{ fontSize: 9, color: "#c8c8c8", marginTop: 10 }}>
+              <div style={{ fontSize: 9, color: "#5d5e53", marginTop: 10 }}>
                 generated {new Date(coach.at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} · AI-generated, sanity-check against the numbers above
               </div>
             </>
@@ -625,7 +625,7 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
       )}
 
       {weighIns.length === 0 && (
-        <div style={{ ...card, textAlign: "center", color: "#9a9a9a", fontSize: 12, lineHeight: 1.6 }}>
+        <div style={{ ...card, textAlign: "center", color: "#8b8c7f", fontSize: 12, lineHeight: 1.6 }}>
           No weigh-ins yet. Log your weight above — everything on this tab is built around actual scale data, not estimates.
         </div>
       )}
@@ -634,17 +634,17 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
         {/* Scale vs deficit math */}
         <div style={card}>
           <div style={lbl}>SCALE VS DEFICIT MATH</div>
-          <div style={{ fontSize: 10, color: "#b8b8b8", marginBottom: 14, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 10, color: "#6d6e63", marginBottom: 14, lineHeight: 1.5 }}>
             Green = weight predicted by your logged deficit. Dots = actual weigh-ins.
             If actual drops faster early, that's water. If actual runs above predicted, you're under-logging intake.
           </div>
           <ResponsiveContainer width="100%" height={180}>
             <LineChart data={chartData} margin={{ top: 10, right: 10, left: -14, bottom: 0 }}>
-              <XAxis dataKey="date" tick={{ fill: "#9a9a9a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
-              <YAxis domain={["dataMin - 2", "dataMax + 2"]} tick={{ fill: "#9a9a9a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 8, fontFamily: "DM Mono", fontSize: 11 }} labelStyle={{ color: "#6a6a6a" }} />
-              <Line type="monotone" dataKey="predicted" name="predicted" stroke="#a8c078" strokeWidth={2} strokeDasharray="5 3" dot={false} connectNulls />
-              <Line type="monotone" dataKey="actual" name="actual" stroke="#7a9ec0" strokeWidth={0} dot={{ fill: "#7a9ec0", r: 5 }} connectNulls={false} isAnimationActive={false} />
+              <XAxis dataKey="date" tick={{ fill: "#8b8c7f", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
+              <YAxis domain={["dataMin - 2", "dataMax + 2"]} tick={{ fill: "#8b8c7f", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ background: "#1d1f16", border: "1px solid #343729", borderRadius: 8, fontFamily: "DM Mono", fontSize: 11 }} labelStyle={{ color: "#b5b5a8" }} />
+              <Line type="monotone" dataKey="predicted" name="predicted" stroke="#b4cd85" strokeWidth={2} strokeDasharray="5 3" dot={false} connectNulls />
+              <Line type="monotone" dataKey="actual" name="actual" stroke="#8fb3d4" strokeWidth={0} dot={{ fill: "#8fb3d4", r: 5 }} connectNulls={false} isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -654,58 +654,58 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={lbl}>CURRENT TRAJECTORY</div>
             {!goalEdit && !readOnly && (
-              <button onClick={startGoalEdit} style={{ background: "#eaf2dc", border: "1px solid #c8d8a8", color: "#3a4a1a", borderRadius: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 10, letterSpacing: 1, padding: "4px 10px", marginBottom: 12 }}>
+              <button onClick={startGoalEdit} style={{ background: "#262a1c", border: "1px solid #4a5138", color: "#c9dd9e", borderRadius: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 10, letterSpacing: 1, padding: "4px 10px", marginBottom: 12 }}>
                 {goals.length ? "EDIT GOALS" : "+ SET GOALS"}
               </button>
             )}
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
             <div>
-              <div style={{ fontSize: 28, fontWeight: 500, color: "#a8c078", lineHeight: 1 }}>{estNow != null ? estNow.toFixed(1) : "—"}</div>
-              <div style={{ fontSize: 10, color: "#9a9a9a", marginTop: 4 }}>est. weight now (lb)</div>
+              <div style={{ fontSize: 28, fontWeight: 500, color: "#b4cd85", lineHeight: 1 }}>{estNow != null ? estNow.toFixed(1) : "—"}</div>
+              <div style={{ fontSize: 10, color: "#8b8c7f", marginTop: 4 }}>est. weight now (lb)</div>
             </div>
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 28, fontWeight: 500, color: lbsPerWeek7 > 2 ? "#c9b078" : "#a8c078", lineHeight: 1 }}>{lbsPerWeek7 > 0 ? `-${lbsPerWeek7.toFixed(1)}` : "0"}</div>
-              <div style={{ fontSize: 10, color: "#9a9a9a", marginTop: 4 }}>lb/week (7-day)</div>
+              <div style={{ fontSize: 28, fontWeight: 500, color: lbsPerWeek7 > 2 ? "#d4bd85" : "#b4cd85", lineHeight: 1 }}>{lbsPerWeek7 > 0 ? `-${lbsPerWeek7.toFixed(1)}` : "0"}</div>
+              <div style={{ fontSize: 10, color: "#8b8c7f", marginTop: 4 }}>lb/week (7-day)</div>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 28, fontWeight: 500, color: lbsPerWeek > 2 ? "#c9b078" : "#a8c078", lineHeight: 1 }}>{lbsPerWeek > 0 ? `-${lbsPerWeek.toFixed(1)}` : "0"}</div>
-              <div style={{ fontSize: 10, color: "#9a9a9a", marginTop: 4 }}>lb/week (21-day)</div>
+              <div style={{ fontSize: 28, fontWeight: 500, color: lbsPerWeek > 2 ? "#d4bd85" : "#b4cd85", lineHeight: 1 }}>{lbsPerWeek > 0 ? `-${lbsPerWeek.toFixed(1)}` : "0"}</div>
+              <div style={{ fontSize: 10, color: "#8b8c7f", marginTop: 4 }}>lb/week (21-day)</div>
             </div>
           </div>
-          <div style={{ borderTop: "1px solid #ece5df", paddingTop: 12, fontSize: 12, lineHeight: 1.9, color: "#6a6a6a" }}>
+          <div style={{ borderTop: "1px solid #2a2d20", paddingTop: 12, fontSize: 12, lineHeight: 1.9, color: "#b5b5a8" }}>
             {goalEdit ? (
               <>
                 {goalEdit.map((g, i) => (
                   <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
                     <input value={g.label} placeholder="label (e.g. first goal)" onChange={e => setGoalEdit(ge => ge.map((x, j) => j === i ? { ...x, label: e.target.value } : x))} style={{ ...ip, flex: 2 }} />
                     <input type="number" step="0.1" value={g.weight} placeholder="lb" onChange={e => setGoalEdit(ge => ge.map((x, j) => j === i ? { ...x, weight: e.target.value } : x))} style={{ ...ip, flex: 1 }} />
-                    <button onClick={() => setGoalEdit(ge => ge.filter((_, j) => j !== i))} style={{ background: "none", border: "none", color: "#c97c7c", cursor: "pointer", fontSize: 13, padding: "0 2px" }}>✕</button>
+                    <button onClick={() => setGoalEdit(ge => ge.filter((_, j) => j !== i))} style={{ background: "none", border: "none", color: "#d98b8b", cursor: "pointer", fontSize: 13, padding: "0 2px" }}>✕</button>
                   </div>
                 ))}
                 {goalEdit.length < 4 && (
-                  <button onClick={() => setGoalEdit(ge => [...ge, { label: "", weight: "" }])} style={{ background: "none", border: "1px dashed #dcd5cf", color: "#b8b8b8", borderRadius: 6, padding: "4px 10px", fontFamily: "inherit", fontSize: 10, cursor: "pointer", letterSpacing: 1 }}>+ GOAL</button>
+                  <button onClick={() => setGoalEdit(ge => [...ge, { label: "", weight: "" }])} style={{ background: "none", border: "1px dashed #343729", color: "#6d6e63", borderRadius: 6, padding: "4px 10px", fontFamily: "inherit", fontSize: 10, cursor: "pointer", letterSpacing: 1 }}>+ GOAL</button>
                 )}
                 <div style={{ marginTop: 12 }}>
-                  <div style={{ fontSize: 9, color: "#9a9a9a", letterSpacing: 1, marginBottom: 4 }}>MAINTENANCE (KCAL/DAY) — used as your burn on days without Whoop data</div>
+                  <div style={{ fontSize: 9, color: "#8b8c7f", letterSpacing: 1, marginBottom: 4 }}>MAINTENANCE (KCAL/DAY) — used as your burn on days without Whoop data</div>
                   <input type="number" value={maintEdit} placeholder={`unset — falls back to ${targets.calories} (your intake target)`} onChange={e => setMaintEdit(e.target.value)} style={ip} />
                 </div>
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                  <button onClick={saveGoalEdit} disabled={goalSaving} style={{ flex: 1, background: "#a8c078", color: "#111", border: "none", borderRadius: 6, padding: "8px", fontFamily: "inherit", fontSize: 11, fontWeight: 500, cursor: "pointer" }}>{goalSaving ? "…" : "SAVE"}</button>
-                  <button onClick={() => setGoalEdit(null)} style={{ flex: 1, background: "#ffffff", color: "#7a7a7a", border: "1px solid #dcd5cf", borderRadius: 6, padding: "8px", fontFamily: "inherit", fontSize: 11, cursor: "pointer" }}>CANCEL</button>
+                  <button onClick={saveGoalEdit} disabled={goalSaving} style={{ flex: 1, background: "#b4cd85", color: "#14150f", border: "none", borderRadius: 6, padding: "8px", fontFamily: "inherit", fontSize: 11, fontWeight: 500, cursor: "pointer" }}>{goalSaving ? "…" : "SAVE"}</button>
+                  <button onClick={() => setGoalEdit(null)} style={{ flex: 1, background: "#1d1f16", color: "#a3a396", border: "1px solid #343729", borderRadius: 6, padding: "8px", fontFamily: "inherit", fontSize: 11, cursor: "pointer" }}>CANCEL</button>
                 </div>
               </>
             ) : goals.length ? (
               goals.map((g, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>{g.weight} lb ({g.label})</span><span style={{ color: "#2a2a2a", fontWeight: 500 }}>{projectTo(Number(g.weight)) || "—"}</span>
+                  <span>{g.weight} lb ({g.label})</span><span style={{ color: "#ecebe2", fontWeight: 500 }}>{projectTo(Number(g.weight)) || "—"}</span>
                 </div>
               ))
             ) : (
-              <div style={{ fontSize: 11, color: "#b8b8b8", lineHeight: 1.5 }}>No goal weights set. Tap + SET GOALS to add yours — projections will show an ETA for each.</div>
+              <div style={{ fontSize: 11, color: "#6d6e63", lineHeight: 1.5 }}>No goal weights set. Tap + SET GOALS to add yours — projections will show an ETA for each.</div>
             )}
           </div>
-          {lbsPerWeek > 2 && <div style={{ fontSize: 10, color: "#c9b078", marginTop: 10, lineHeight: 1.5 }}>⚠ Losing faster than ~2 lb/week risks muscle. Check protein before celebrating.</div>}
+          {lbsPerWeek > 2 && <div style={{ fontSize: 10, color: "#d4bd85", marginTop: 10, lineHeight: 1.5 }}>⚠ Losing faster than ~2 lb/week risks muscle. Check protein before celebrating.</div>}
         </div>
       </>}
 
@@ -714,18 +714,18 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
         <div style={lbl}>PROTEIN ADHERENCE</div>
         {[{ label: "LAST 7 DAYS", s: prot7 }, { label: "LAST 28 DAYS", s: prot28 }].map(({ label, s }, i) => (
           <div key={label} style={{ marginBottom: i === 0 ? 14 : 10 }}>
-            <div style={{ fontSize: 10, color: "#9a9a9a", letterSpacing: 1, marginBottom: 6 }}>{label}</div>
+            <div style={{ fontSize: 10, color: "#8b8c7f", letterSpacing: 1, marginBottom: 6 }}>{label}</div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <div>
                 <div style={{ fontSize: 28, fontWeight: 500, color: protColorFor(s.pct), lineHeight: 1 }}>{s.pct}%</div>
-                <div style={{ fontSize: 10, color: "#9a9a9a", marginTop: 4 }}>days at {targets.protein}g+ ({s.hit}/{s.n})</div>
+                <div style={{ fontSize: 10, color: "#8b8c7f", marginTop: 4 }}>days at {targets.protein}g+ ({s.hit}/{s.n})</div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 28, fontWeight: 500, color: "#2a2a2a", lineHeight: 1 }}>{s.avg}g</div>
-                <div style={{ fontSize: 10, color: "#9a9a9a", marginTop: 4 }}>daily average</div>
+                <div style={{ fontSize: 28, fontWeight: 500, color: "#ecebe2", lineHeight: 1 }}>{s.avg}g</div>
+                <div style={{ fontSize: 10, color: "#8b8c7f", marginTop: 4 }}>daily average</div>
               </div>
             </div>
-            <div style={{ height: 5, background: "#dcd5cf", borderRadius: 3, overflow: "hidden" }}>
+            <div style={{ height: 5, background: "#343729", borderRadius: 3, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${s.pct}%`, background: protColorFor(s.pct), borderRadius: 3 }} />
             </div>
           </div>
@@ -741,15 +741,15 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
       {waists.length >= 2 ? (
         <div style={card}>
           <div style={lbl}>WAIST TREND</div>
-          <div style={{ fontSize: 13, color: "#6a6a6a" }}>
-            {waists[0].waist_in}" → <span style={{ color: "#2a2a2a", fontWeight: 500 }}>{waists[waists.length - 1].waist_in}"</span>
-            <span style={{ color: "#9a9a9a", fontSize: 11 }}> ({fmt(waists[0].date)} → {fmt(waists[waists.length - 1].date)})</span>
+          <div style={{ fontSize: 13, color: "#b5b5a8" }}>
+            {waists[0].waist_in}" → <span style={{ color: "#ecebe2", fontWeight: 500 }}>{waists[waists.length - 1].waist_in}"</span>
+            <span style={{ color: "#8b8c7f", fontSize: 11 }}> ({fmt(waists[0].date)} → {fmt(waists[waists.length - 1].date)})</span>
           </div>
-          <div style={{ fontSize: 10, color: "#b8b8b8", marginTop: 6, lineHeight: 1.5 }}>Waist dropping while weight holds = fat out, muscle in. This number matters more than the scale.</div>
+          <div style={{ fontSize: 10, color: "#6d6e63", marginTop: 6, lineHeight: 1.5 }}>Waist dropping while weight holds = fat out, muscle in. This number matters more than the scale.</div>
         </div>
       ) : (
         <div style={{ ...card, borderStyle: "dashed" }}>
-          <div style={{ fontSize: 11, color: "#9a9a9a", lineHeight: 1.6 }}>
+          <div style={{ fontSize: 11, color: "#8b8c7f", lineHeight: 1.6 }}>
             📏 Log your waist (weekly is enough). It's the cheapest honest signal of fat loss — the scale can't tell fat from muscle, the tape mostly can.
           </div>
         </div>
@@ -762,14 +762,14 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
           <div style={{ display: "flex", gap: 32 }}>
             <div>
               <div style={{ fontSize: 28, fontWeight: 500, color: recColorFor(recAvg7), lineHeight: 1 }}>{recAvg7}%</div>
-              <div style={{ fontSize: 10, color: "#9a9a9a", marginTop: 4 }}>7-day avg</div>
+              <div style={{ fontSize: 10, color: "#8b8c7f", marginTop: 4 }}>7-day avg</div>
             </div>
             <div>
               <div style={{ fontSize: 28, fontWeight: 500, color: recColorFor(recAvg), lineHeight: 1 }}>{recAvg}%</div>
-              <div style={{ fontSize: 10, color: "#9a9a9a", marginTop: 4 }}>14-day avg</div>
+              <div style={{ fontSize: 10, color: "#8b8c7f", marginTop: 4 }}>14-day avg</div>
             </div>
           </div>
-          <div style={{ fontSize: 10, color: "#b8b8b8", marginTop: 6, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 10, color: "#6d6e63", marginTop: 6, lineHeight: 1.5 }}>
             A sustained slide in recovery during a deficit is an early overreach signal — eat at maintenance for 2–3 days if it stays red.
           </div>
         </div>
@@ -777,7 +777,7 @@ function InsightsTab({ bodyData, allTimeData, whoopData, targets, onLogBody, ent
 
       {/* Data export — the log itself is the only unrecoverable asset */}
       <div style={{ textAlign: "center", marginBottom: 8 }}>
-        <a href={`${API}/api/auth?action=export`} style={{ color: "#b8b8b8", fontSize: 10, letterSpacing: 1, textDecoration: "none", borderBottom: "1px dotted #dcd5cf" }}>
+        <a href={`${API}/api/auth?action=export`} style={{ color: "#6d6e63", fontSize: 10, letterSpacing: 1, textDecoration: "none", borderBottom: "1px dotted #343729" }}>
           ⬇ EXPORT ALL MY DATA (JSON)
         </a>
       </div>
@@ -1162,18 +1162,18 @@ export default function FoodTracker() {
     setEditingId(null);
   };
 
-  const inputStyle = { width: "100%", background: "#faf7f2", border: "1px solid #dcd5cf", borderRadius: 6, padding: "8px 10px", color: "#2a2a2a", fontFamily: "'DM Mono', monospace", fontSize: 13 };
+  const inputStyle = { width: "100%", background: "#14150f", border: "1px solid #343729", borderRadius: 6, padding: "8px 10px", color: "#ecebe2", fontFamily: "'DM Mono', monospace", fontSize: 13 };
 
   const MacroRow = ({ label, eaten, target, color }) => {
     const pct = Math.min((eaten / target) * 100, 100); const rem = target - eaten; const over = rem < 0;
     return (
       <div style={{ marginBottom: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 4 }}>
-          <span style={{ color: "#7a7a7a", textTransform: "uppercase", letterSpacing: 1 }}>{label}</span>
-          <span><span style={{ color: "#2a2a2a", fontWeight: 500 }}>{eaten}</span><span style={{ color: "#b8b8b8" }}> / {target}g · </span><span style={{ color: over ? "#c97c7c" : color }}>{over ? `+${Math.abs(rem)} over` : `${rem} left`}</span></span>
+          <span style={{ color: "#a3a396", textTransform: "uppercase", letterSpacing: 1 }}>{label}</span>
+          <span><span style={{ color: "#ecebe2", fontWeight: 500 }}>{eaten}</span><span style={{ color: "#6d6e63" }}> / {target}g · </span><span style={{ color: over ? "#d98b8b" : color }}>{over ? `+${Math.abs(rem)} over` : `${rem} left`}</span></span>
         </div>
-        <div style={{ height: 5, background: "#dcd5cf", borderRadius: 3, overflow: "hidden" }}>
-          <div style={{ height: "100%", width: `${pct}%`, background: over ? "#c97c7c" : color, borderRadius: 3, transition: "width 0.4s ease" }} />
+        <div style={{ height: 5, background: "#343729", borderRadius: 3, overflow: "hidden" }}>
+          <div style={{ height: "100%", width: `${pct}%`, background: over ? "#d98b8b" : color, borderRadius: 3, transition: "width 0.4s ease" }} />
         </div>
       </div>
     );
@@ -1185,17 +1185,17 @@ export default function FoodTracker() {
   const viewing = !!viewAs;
   const profile = viewAs || me; // whose preferences shape the UI
   const fuelMode = profile?.preferences?.mode === "fuel";
-  const overTone = fuelMode ? "#a8c078" : "#c97c7c"; // fueling: over target is not failure
+  const overTone = fuelMode ? "#b4cd85" : "#d98b8b"; // fueling: over target is not failure
 
   if (loading) return (
-    <div style={{ minHeight: "100vh", background: "#faf7f2", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Mono', monospace", color: "#9a9a9a", fontSize: 12, letterSpacing: 2 }}>
+    <div style={{ minHeight: "100vh", background: "#14150f", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Mono', monospace", color: "#8b8c7f", fontSize: 12, letterSpacing: 2 }}>
       LOADING...
     </div>
   );
 
   if (authed === false) return (
-    <div style={{ minHeight: "100vh", background: "#faf7f2", color: "#2a2a2a", fontFamily: "'DM Mono', 'Courier New', monospace", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap'); input:focus { outline: none; border-color: #a8c078 !important; }`}</style>
+    <div style={{ minHeight: "100vh", background: "#14150f", color: "#ecebe2", fontFamily: "'DM Mono', 'Courier New', monospace", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap'); input:focus { outline: none; border-color: #b4cd85 !important; }`}</style>
       <form onSubmit={async (e) => {
         e.preventDefault();
         const t = tokenInput.trim();
@@ -1218,11 +1218,11 @@ export default function FoodTracker() {
           setTokenError("Network error. Try again.");
         }
       }} style={{ width: "100%", maxWidth: 400 }}>
-        <div style={{ fontSize: 10, color: "#a8c078", letterSpacing: 3, marginBottom: 16 }}>FUEL LOG</div>
-        <div style={{ fontSize: 12, color: "#6a6a6a", marginBottom: 20, lineHeight: 1.6 }}>Enter your access token to continue. You'll only need to do this once on this device.</div>
-        <input type="password" autoFocus value={tokenInput} onChange={(e) => setTokenInput(e.target.value)} placeholder="paste token here" style={{ width: "100%", background: "#ffffff", border: "1px solid #dcd5cf", color: "#2a2a2a", borderRadius: 6, padding: "12px 14px", fontFamily: "inherit", fontSize: 13, marginBottom: 12 }} />
-        {tokenError && <div style={{ color: "#e87979", fontSize: 11, marginBottom: 12 }}>{tokenError}</div>}
-        <button type="submit" style={{ width: "100%", background: "#a8c078", color: "#111", border: "none", borderRadius: 6, padding: "12px 14px", fontFamily: "inherit", fontSize: 12, fontWeight: 500, cursor: "pointer", letterSpacing: 1, textTransform: "uppercase" }}>Unlock</button>
+        <div style={{ fontSize: 10, color: "#b4cd85", letterSpacing: 3, marginBottom: 16 }}>FUEL LOG</div>
+        <div style={{ fontSize: 12, color: "#b5b5a8", marginBottom: 20, lineHeight: 1.6 }}>Enter your access token to continue. You'll only need to do this once on this device.</div>
+        <input type="password" autoFocus value={tokenInput} onChange={(e) => setTokenInput(e.target.value)} placeholder="paste token here" style={{ width: "100%", background: "#1d1f16", border: "1px solid #343729", color: "#ecebe2", borderRadius: 6, padding: "12px 14px", fontFamily: "inherit", fontSize: 13, marginBottom: 12 }} />
+        {tokenError && <div style={{ color: "#e89b9b", fontSize: 11, marginBottom: 12 }}>{tokenError}</div>}
+        <button type="submit" style={{ width: "100%", background: "#b4cd85", color: "#14150f", border: "none", borderRadius: 6, padding: "12px 14px", fontFamily: "inherit", fontSize: 12, fontWeight: 500, cursor: "pointer", letterSpacing: 1, textTransform: "uppercase" }}>Unlock</button>
       </form>
     </div>
   );
@@ -1233,8 +1233,8 @@ export default function FoodTracker() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#faf7f2", color: "#2a2a2a", fontFamily: "'DM Mono', 'Courier New', monospace", padding: "24px 16px", boxSizing: "border-box", maxWidth: 520, margin: "0 auto" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap'); * { box-sizing: border-box; } html, body { overflow-x: hidden; } input:focus { outline: none; border-color: #a8c078 !important; }`}</style>
+    <div style={{ minHeight: "100vh", background: "#14150f", color: "#ecebe2", fontFamily: "'DM Mono', 'Courier New', monospace", padding: "24px 16px", boxSizing: "border-box", maxWidth: 520, margin: "0 auto" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap'); * { box-sizing: border-box; } html, body { overflow-x: hidden; } input:focus { outline: none; border-color: #b4cd85 !important; }`}</style>
 
       {favoriteModal && (
         <FavoritePortionModal
@@ -1251,24 +1251,24 @@ export default function FoodTracker() {
         const scale = amt / base;
         const unitLabel = aiPortion.unit || "serving";
         const overlayStyle = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 24 };
-        const cardStyle = { background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 16, padding: 22, width: "100%", maxWidth: 380 };
-        const inputBox = { width: "100%", background: "#faf7f2", border: "1px solid #dcd5cf", borderRadius: 6, padding: "10px 12px", fontFamily: "inherit", fontSize: 14, color: "#2a2a2a" };
-        const btn = (primary) => ({ flex: 1, background: primary ? "#a8c078" : "#ffffff", color: primary ? "#111" : "#7a7a7a", border: primary ? "none" : "1px solid #dcd5cf", borderRadius: 8, padding: "10px", fontFamily: "inherit", fontSize: 12, cursor: "pointer", letterSpacing: 1, textTransform: "uppercase" });
+        const cardStyle = { background: "#1d1f16", border: "1px solid #343729", borderRadius: 16, padding: 22, width: "100%", maxWidth: 380 };
+        const inputBox = { width: "100%", background: "#14150f", border: "1px solid #343729", borderRadius: 6, padding: "10px 12px", fontFamily: "inherit", fontSize: 14, color: "#ecebe2" };
+        const btn = (primary) => ({ flex: 1, background: primary ? "#b4cd85" : "#1d1f16", color: primary ? "#14150f" : "#a3a396", border: primary ? "none" : "1px solid #343729", borderRadius: 8, padding: "10px", fontFamily: "inherit", fontSize: 12, cursor: "pointer", letterSpacing: 1, textTransform: "uppercase" });
         return (
           <div style={overlayStyle} onClick={() => setAiPortion(null)}>
             <div style={cardStyle} onClick={(e) => e.stopPropagation()}>
-              <div style={{ fontSize: 10, color: "#a8c078", letterSpacing: 3, marginBottom: 6 }}>AI ESTIMATE</div>
+              <div style={{ fontSize: 10, color: "#b4cd85", letterSpacing: 3, marginBottom: 6 }}>AI ESTIMATE</div>
               <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 4 }}>{aiPortion.name}</div>
-              <div style={{ fontSize: 11, color: "#9a9a9a", marginBottom: 16 }}>
+              <div style={{ fontSize: 11, color: "#8b8c7f", marginBottom: 16 }}>
                 {aiPortion.calories} cal · {aiPortion.protein}p / {aiPortion.carbs}c / {aiPortion.fat}f per {aiPortion.base_amount} {unitLabel}
               </div>
 
-              <div style={{ fontSize: 10, color: "#9a9a9a", letterSpacing: 2, marginBottom: 4 }}>HOW MUCH DID YOU HAVE? ({unitLabel.toUpperCase()})</div>
+              <div style={{ fontSize: 10, color: "#8b8c7f", letterSpacing: 2, marginBottom: 4 }}>HOW MUCH DID YOU HAVE? ({unitLabel.toUpperCase()})</div>
               <input type="number" step="any" autoFocus value={aiAmount} onChange={(e) => setAiAmount(e.target.value)} style={inputBox} />
 
-              <div style={{ background: "#f5f1ec", borderRadius: 8, padding: 12, margin: "14px 0", fontSize: 13 }}>
-                <div style={{ fontSize: 10, color: "#9a9a9a", letterSpacing: 1, marginBottom: 4 }}>WILL ENTER</div>
-                <div><strong style={{ color: "#a8c078" }}>{Math.round((aiPortion.calories || 0) * scale)}</strong> cal · {Math.round((aiPortion.protein || 0) * scale)}p / {Math.round((aiPortion.carbs || 0) * scale)}c / {Math.round((aiPortion.fat || 0) * scale)}f</div>
+              <div style={{ background: "#191b12", borderRadius: 8, padding: 12, margin: "14px 0", fontSize: 13 }}>
+                <div style={{ fontSize: 10, color: "#8b8c7f", letterSpacing: 1, marginBottom: 4 }}>WILL ENTER</div>
+                <div><strong style={{ color: "#b4cd85" }}>{Math.round((aiPortion.calories || 0) * scale)}</strong> cal · {Math.round((aiPortion.protein || 0) * scale)}p / {Math.round((aiPortion.carbs || 0) * scale)}c / {Math.round((aiPortion.fat || 0) * scale)}f</div>
               </div>
 
               <div style={{ display: "flex", gap: 8 }}>
@@ -1283,22 +1283,22 @@ export default function FoodTracker() {
       {/* Whoop prompt */}
       {showWhoopPrompt && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 24 }}>
-          <div style={{ background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 16, padding: 24, width: "100%", maxWidth: 400 }}>
-            <div style={{ fontSize: 10, color: "#a8c078", letterSpacing: 3, marginBottom: 4 }}>WHOOP CHECK-IN</div>
-            <div style={{ fontSize: 16, color: "#2a2a2a", marginBottom: 16 }}>Daily metrics</div>
+          <div style={{ background: "#1d1f16", border: "1px solid #343729", borderRadius: 16, padding: 24, width: "100%", maxWidth: 400 }}>
+            <div style={{ fontSize: 10, color: "#b4cd85", letterSpacing: 3, marginBottom: 4 }}>WHOOP CHECK-IN</div>
+            <div style={{ fontSize: 16, color: "#ecebe2", marginBottom: 16 }}>Daily metrics</div>
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 10, color: "#9a9a9a", marginBottom: 4 }}>DATE</div>
-              <input type="date" value={whoopDate} onChange={e => setWhoopDate(e.target.value)} style={{ ...inputStyle, colorScheme: "light" }} />
+              <div style={{ fontSize: 10, color: "#8b8c7f", marginBottom: 4 }}>DATE</div>
+              <input type="date" value={whoopDate} onChange={e => setWhoopDate(e.target.value)} style={{ ...inputStyle, colorScheme: "dark" }} />
             </div>
             {[["Strain", "strain", "0–21"], ["Calories Burned", "burned", "from Whoop"]].map(([label, key, hint]) => (
               <div key={key} style={{ marginBottom: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#9a9a9a", marginBottom: 4 }}><span>{label.toUpperCase()}</span><span>{hint}</span></div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#8b8c7f", marginBottom: 4 }}><span>{label.toUpperCase()}</span><span>{hint}</span></div>
                 <input type="number" value={whoopForm[key]} onChange={e => setWhoopForm(f => ({ ...f, [key]: e.target.value }))} style={inputStyle} />
               </div>
             ))}
             <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-              <button onClick={saveWhoopData} style={{ flex: 1, background: "#a8c078", color: "#111", border: "none", borderRadius: 8, padding: "11px", fontFamily: "inherit", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>SAVE</button>
-              <button onClick={() => setShowWhoopPrompt(false)} style={{ flex: 1, background: "none", color: "#9a9a9a", border: "1px solid #dcd5cf", borderRadius: 8, padding: "11px", fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>SKIP</button>
+              <button onClick={saveWhoopData} style={{ flex: 1, background: "#b4cd85", color: "#14150f", border: "none", borderRadius: 8, padding: "11px", fontFamily: "inherit", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>SAVE</button>
+              <button onClick={() => setShowWhoopPrompt(false)} style={{ flex: 1, background: "none", color: "#8b8c7f", border: "1px solid #343729", borderRadius: 8, padding: "11px", fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>SKIP</button>
             </div>
           </div>
         </div>
@@ -1307,22 +1307,22 @@ export default function FoodTracker() {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", rowGap: 10, marginBottom: 24 }}>
         <div>
-          <div style={{ fontSize: 10, color: "#a8c078", letterSpacing: 3, textTransform: "uppercase", marginBottom: 4 }}>FUEL LOG</div>
+          <div style={{ fontSize: 10, color: "#b4cd85", letterSpacing: 3, textTransform: "uppercase", marginBottom: 4 }}>FUEL LOG</div>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <button onClick={() => { const d = new Date(selectedDate + "T00:00:00"); d.setDate(d.getDate() - 1); setSelectedDate(toLocalYMD(d)); }}
               title="Previous day"
-              style={{ background: "none", border: "none", color: "#9a9a9a", fontSize: 20, cursor: "pointer", padding: "0 6px", lineHeight: 1, fontFamily: "inherit" }}>‹</button>
+              style={{ background: "none", border: "none", color: "#8b8c7f", fontSize: 20, cursor: "pointer", padding: "0 6px", lineHeight: 1, fontFamily: "inherit" }}>‹</button>
             <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
-              style={{ background: "none", border: "none", color: "#2a2a2a", fontSize: 20, fontFamily: "inherit", fontWeight: 500, cursor: "pointer", padding: 0, colorScheme: "light" }} />
+              style={{ background: "none", border: "none", color: "#ecebe2", fontSize: 20, fontFamily: "inherit", fontWeight: 500, cursor: "pointer", padding: 0, colorScheme: "dark" }} />
             <button onClick={() => { const d = new Date(selectedDate + "T00:00:00"); d.setDate(d.getDate() + 1); setSelectedDate(toLocalYMD(d)); }}
               title="Next day"
               disabled={selectedDate >= today}
-              style={{ background: "none", border: "none", color: selectedDate >= today ? "#dcd5cf" : "#9a9a9a", fontSize: 20, cursor: selectedDate >= today ? "default" : "pointer", padding: "0 6px", lineHeight: 1, fontFamily: "inherit" }}>›</button>
+              style={{ background: "none", border: "none", color: selectedDate >= today ? "#343729" : "#8b8c7f", fontSize: 20, cursor: selectedDate >= today ? "default" : "pointer", padding: "0 6px", lineHeight: 1, fontFamily: "inherit" }}>›</button>
           </div>
         </div>
         <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
           {["log", "trends", "insights"].map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{ background: tab === t ? "#a8c078" : "none", color: tab === t ? "#111" : "#9a9a9a", border: `1px solid ${tab === t ? "#a8c078" : "#dcd5cf"}`, borderRadius: 6, padding: "6px 12px", fontFamily: "inherit", fontSize: 10, cursor: "pointer", letterSpacing: 1, textTransform: "uppercase" }}>{t}</button>
+            <button key={t} onClick={() => setTab(t)} style={{ background: tab === t ? "#b4cd85" : "none", color: tab === t ? "#14150f" : "#8b8c7f", border: `1px solid ${tab === t ? "#b4cd85" : "#343729"}`, borderRadius: 6, padding: "6px 12px", fontFamily: "inherit", fontSize: 10, cursor: "pointer", letterSpacing: 1, textTransform: "uppercase" }}>{t}</button>
           ))}
         </div>
       </div>
@@ -1331,66 +1331,66 @@ export default function FoodTracker() {
       {viewable.length > 0 && (
         <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
           <button onClick={() => setViewAs(null)}
-            style={{ background: !viewing ? "#a8c078" : "none", color: !viewing ? "#111" : "#9a9a9a", border: `1px solid ${!viewing ? "#a8c078" : "#dcd5cf"}`, borderRadius: 16, padding: "4px 12px", fontFamily: "inherit", fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>
+            style={{ background: !viewing ? "#b4cd85" : "none", color: !viewing ? "#14150f" : "#8b8c7f", border: `1px solid ${!viewing ? "#b4cd85" : "#343729"}`, borderRadius: 16, padding: "4px 12px", fontFamily: "inherit", fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>
             {(me?.name || "ME").toUpperCase()}
           </button>
           {viewable.map(v => (
             <button key={v.id} onClick={() => setViewAs(v)}
-              style={{ background: viewAs?.id === v.id ? "#7a9ec0" : "none", color: viewAs?.id === v.id ? "#fff" : "#9a9a9a", border: `1px solid ${viewAs?.id === v.id ? "#7a9ec0" : "#dcd5cf"}`, borderRadius: 16, padding: "4px 12px", fontFamily: "inherit", fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>
+              style={{ background: viewAs?.id === v.id ? "#8fb3d4" : "none", color: viewAs?.id === v.id ? "#1d1f16" : "#8b8c7f", border: `1px solid ${viewAs?.id === v.id ? "#8fb3d4" : "#343729"}`, borderRadius: 16, padding: "4px 12px", fontFamily: "inherit", fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>
               👁 {v.name.toUpperCase()}
             </button>
           ))}
-          {viewing && <span style={{ fontSize: 9, color: "#7a9ec0", letterSpacing: 1 }}>READ-ONLY VIEW</span>}
+          {viewing && <span style={{ fontSize: 9, color: "#8fb3d4", letterSpacing: 1 }}>READ-ONLY VIEW</span>}
         </div>
       )}
 
       {tab === "log" && <>
         {/* Summary */}
-        <div style={{ background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 12, padding: "20px", marginBottom: 12 }}>
+        <div style={{ background: "#1d1f16", border: "1px solid #343729", borderRadius: 12, padding: "20px", marginBottom: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 20 }}>
             <div style={{ position: "relative", flexShrink: 0 }}>
               <svg width="80" height="80" viewBox="0 0 80 80">
-                <circle cx="40" cy="40" r="32" fill="none" stroke="#dcd5cf" strokeWidth="8" />
-                <circle cx="40" cy="40" r="32" fill="none" stroke={calOver ? overTone : "#a8c078"} strokeWidth="8"
+                <circle cx="40" cy="40" r="32" fill="none" stroke="#343729" strokeWidth="8" />
+                <circle cx="40" cy="40" r="32" fill="none" stroke={calOver ? overTone : "#b4cd85"} strokeWidth="8"
                   strokeDasharray={`${2 * Math.PI * 32}`} strokeDashoffset={`${2 * Math.PI * 32 * (1 - calPct / 100)}`}
                   strokeLinecap="round" transform="rotate(-90 40 40)" style={{ transition: "stroke-dashoffset 0.5s ease" }} />
               </svg>
               <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ fontSize: 13, fontWeight: 500, color: calOver ? overTone : "#a8c078" }}>{Math.round(calPct)}%</span>
+                <span style={{ fontSize: 13, fontWeight: 500, color: calOver ? overTone : "#b4cd85" }}>{Math.round(calPct)}%</span>
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 36, fontWeight: 500, color: calOver ? overTone : "#a8c078", lineHeight: 1 }}>{totals.calories}</div>
-              <div style={{ fontSize: 11, color: "#9a9a9a", marginTop: 4 }}>of <span style={{ color: "#6a6a6a" }}>{targets.calories}</span> kcal target</div>
-              <div style={{ fontSize: 13, color: calOver ? overTone : "#7a9ec0", marginTop: 6, fontWeight: 500 }}>
+              <div style={{ fontSize: 36, fontWeight: 500, color: calOver ? overTone : "#b4cd85", lineHeight: 1 }}>{totals.calories}</div>
+              <div style={{ fontSize: 11, color: "#8b8c7f", marginTop: 4 }}>of <span style={{ color: "#b5b5a8" }}>{targets.calories}</span> kcal target</div>
+              <div style={{ fontSize: 13, color: calOver ? overTone : "#8fb3d4", marginTop: 6, fontWeight: 500 }}>
                 {calOver ? (fuelMode ? `✓ target +${Math.abs(remaining.calories)}` : `▲ ${Math.abs(remaining.calories)} over`) : (fuelMode ? `▼ ${remaining.calories} to go` : `▼ ${remaining.calories} under`)}
               </div>
             </div>
           </div>
-          <MacroRow label="Protein" eaten={totals.protein} target={targets.protein} color="#a8c078" />
-          <MacroRow label="Carbs" eaten={totals.carbs} target={targets.carbs} color="#7a9ec0" />
-          <MacroRow label="Fat" eaten={totals.fat} target={targets.fat} color="#c89878" />
+          <MacroRow label="Protein" eaten={totals.protein} target={targets.protein} color="#b4cd85" />
+          <MacroRow label="Carbs" eaten={totals.carbs} target={targets.carbs} color="#8fb3d4" />
+          <MacroRow label="Fat" eaten={totals.fat} target={targets.fat} color="#d4a985" />
           {whoopData[selectedDate] && (() => {
             const w = whoopData[selectedDate];
-            const recoveryColor = w.recovery >= 67 ? "#a8c078" : w.recovery >= 34 ? "#c9b078" : "#c97c7c";
+            const recoveryColor = w.recovery >= 67 ? "#b4cd85" : w.recovery >= 34 ? "#d4bd85" : "#d98b8b";
             return (
-              <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #ece5df", display: "flex", justifyContent: "space-between" }}>
-                {w.recovery && <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 500, color: recoveryColor }}>{w.recovery}%</div><div style={{ fontSize: 9, color: "#b8b8b8", marginTop: 2 }}>RECOVERY</div></div>}
-                {w.strain && <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 500, color: "#7a9ec0" }}>{w.strain}</div><div style={{ fontSize: 9, color: "#b8b8b8", marginTop: 2 }}>STRAIN</div></div>}
-                {w.sleep && <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 500, color: "#2a2a2a" }}>{w.sleep}h</div><div style={{ fontSize: 9, color: "#b8b8b8", marginTop: 2 }}>SLEEP</div></div>}
-                {w.burned && <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 500, color: "#c89878" }}>{w.burned}</div><div style={{ fontSize: 9, color: "#b8b8b8", marginTop: 2 }}>BURNED</div></div>}
-                {w.burned && <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 500, color: (w.burned - totals.calories) > 0 ? "#a8c078" : "#c97c7c" }}>{Math.abs(w.burned - totals.calories)}</div><div style={{ fontSize: 9, color: "#b8b8b8", marginTop: 2 }}>NET</div></div>}
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #2a2d20", display: "flex", justifyContent: "space-between" }}>
+                {w.recovery && <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 500, color: recoveryColor }}>{w.recovery}%</div><div style={{ fontSize: 9, color: "#6d6e63", marginTop: 2 }}>RECOVERY</div></div>}
+                {w.strain && <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 500, color: "#8fb3d4" }}>{w.strain}</div><div style={{ fontSize: 9, color: "#6d6e63", marginTop: 2 }}>STRAIN</div></div>}
+                {w.sleep && <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 500, color: "#ecebe2" }}>{w.sleep}h</div><div style={{ fontSize: 9, color: "#6d6e63", marginTop: 2 }}>SLEEP</div></div>}
+                {w.burned && <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 500, color: "#d4a985" }}>{w.burned}</div><div style={{ fontSize: 9, color: "#6d6e63", marginTop: 2 }}>BURNED</div></div>}
+                {w.burned && <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 500, color: (w.burned - totals.calories) > 0 ? "#b4cd85" : "#d98b8b" }}>{Math.abs(w.burned - totals.calories)}</div><div style={{ fontSize: 9, color: "#6d6e63", marginTop: 2 }}>NET</div></div>}
               </div>
             );
           })()}
         </div>
         {dayLooksUnderLogged && (
-          <div style={{ background: "#fdf6ec", border: "1px solid #c9b078", borderRadius: 10, padding: "10px 14px", marginBottom: 12, fontSize: 12, color: "#8a7440", lineHeight: 1.6 }}>
+          <div style={{ background: "#26231a", border: "1px solid #d4bd85", borderRadius: 10, padding: "10px 14px", marginBottom: 12, fontSize: 12, color: "#cdb97e", lineHeight: 1.6 }}>
             ⚠ Only <b>{totals.calories} kcal</b> logged{selectedDate === today ? " today" : " this day"} — your typical day is ~{medianCal}. Did everything make it in? Oils, dressings, drinks, bites while cooking. A day that looks like a big deficit but isn't will quietly wreck your trend math.
           </div>
         )}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 8 }}>
-          <div style={{ fontSize: 10, color: "#dcd5cf", letterSpacing: 1 }}>TARGETS: {targets.calories} · {targets.protein}P · {targets.carbs}C · {targets.fat}F</div>
+          <div style={{ fontSize: 10, color: "#343729", letterSpacing: 1 }}>TARGETS: {targets.calories} · {targets.protein}P · {targets.carbs}C · {targets.fat}F</div>
           <div style={{ display: "flex", gap: 6 }}>
             {!viewing && me?.preferences?.has_whoop && whoopStatus && !whoopStatus.connected && (
               <button onClick={async () => {
@@ -1398,7 +1398,7 @@ export default function FoodTracker() {
                 const data = await r.json();
                 if (data.url) window.location.href = data.url;
                 else alert(data.error || "Failed to start Whoop OAuth");
-              }} style={{ background: "#eaf2dc", border: "1px solid #c8d8a8", color: "#3a4a1a", borderRadius: 6, padding: "4px 10px", fontFamily: "inherit", fontSize: 9, cursor: "pointer", letterSpacing: 1 }}>CONNECT WHOOP</button>
+              }} style={{ background: "#262a1c", border: "1px solid #4a5138", color: "#c9dd9e", borderRadius: 6, padding: "4px 10px", fontFamily: "inherit", fontSize: 9, cursor: "pointer", letterSpacing: 1 }}>CONNECT WHOOP</button>
             )}
             {!viewing && me?.preferences?.has_whoop && whoopStatus && whoopStatus.connected && (
               <button onClick={async () => {
@@ -1407,55 +1407,55 @@ export default function FoodTracker() {
                 alert(data.ok ? `Synced ${data.synced} day(s): ${data.dates.join(", ")}` : `Sync failed: ${data.error}`);
                 if (data.ok) location.reload();
               }} title={whoopStatus.last_sync_at ? `Last sync: ${new Date(whoopStatus.last_sync_at).toLocaleString()} — ${whoopStatus.last_sync_status}` : "Never synced yet"}
-                style={{ background: "none", border: "1px solid #dcd5cf", color: "#9a9a9a", borderRadius: 6, padding: "4px 10px", fontFamily: "inherit", fontSize: 9, cursor: "pointer", letterSpacing: 1 }}>SYNC WHOOP</button>
+                style={{ background: "none", border: "1px solid #343729", color: "#8b8c7f", borderRadius: 6, padding: "4px 10px", fontFamily: "inherit", fontSize: 9, cursor: "pointer", letterSpacing: 1 }}>SYNC WHOOP</button>
             )}
             {!viewing && me?.preferences?.burn_method && me.preferences.burn_method !== "none" && (
-              <button onClick={() => openWhoopPrompt(selectedDate)} style={{ background: "none", border: "1px solid #dcd5cf", color: "#9a9a9a", borderRadius: 6, padding: "4px 10px", fontFamily: "inherit", fontSize: 9, cursor: "pointer", letterSpacing: 1 }}>+ MANUAL</button>
+              <button onClick={() => openWhoopPrompt(selectedDate)} style={{ background: "none", border: "1px solid #343729", color: "#8b8c7f", borderRadius: 6, padding: "4px 10px", fontFamily: "inherit", fontSize: 9, cursor: "pointer", letterSpacing: 1 }}>+ MANUAL</button>
             )}
           </div>
         </div>
 
         {/* Add form */}
         {!viewing && (showForm ? (
-          <div style={{ background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 12, padding: 16, marginBottom: 16 }}>
-            <div style={{ fontSize: 10, color: "#a8c078", letterSpacing: 2, marginBottom: 14 }}>ADD ENTRY</div>
+          <div style={{ background: "#1d1f16", border: "1px solid #343729", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+            <div style={{ fontSize: 10, color: "#b4cd85", letterSpacing: 2, marginBottom: 14 }}>ADD ENTRY</div>
             {favorites.length > 0 && (
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, color: "#9a9a9a", marginBottom: 6, letterSpacing: 1 }}>FAVORITES — TAP TO LOG</div>
+                <div style={{ fontSize: 10, color: "#8b8c7f", marginBottom: 6, letterSpacing: 1 }}>FAVORITES — TAP TO LOG</div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {favorites.map(fav => (
                     <button key={fav.id} onClick={() => openFavoriteModal(fav)}
                       title={`${fav.calories} cal per ${fav.base_amount || 1}${fav.unit && fav.unit !== "serving" ? fav.unit : " serving"}`}
-                      style={{ background: "#eaf2dc", border: "1px solid #c8d8a8", color: "#3a4a1a", borderRadius: 16, padding: "5px 10px", fontFamily: "inherit", fontSize: 11, cursor: "pointer" }}>
-                      {fav.name} <span style={{ color: "#7a8a5a", fontSize: 10 }}>· {fav.calories}</span>
+                      style={{ background: "#262a1c", border: "1px solid #4a5138", color: "#c9dd9e", borderRadius: 16, padding: "5px 10px", fontFamily: "inherit", fontSize: 11, cursor: "pointer" }}>
+                      {fav.name} <span style={{ color: "#8fa06b", fontSize: 10 }}>· {fav.calories}</span>
                     </button>
                   ))}
                 </div>
               </div>
             )}
             <div style={{ marginBottom: 10, position: "relative" }}>
-              <div style={{ fontSize: 10, color: "#9a9a9a", marginBottom: 4 }}>FOOD NAME</div>
+              <div style={{ fontSize: 10, color: "#8b8c7f", marginBottom: 4 }}>FOOD NAME</div>
               <div style={{ display: "flex", gap: 8 }}>
                 <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} onKeyDown={e => e.key === "Enter" && handleLookup()} placeholder="e.g. 6 oz salmon" style={{ ...inputStyle, flex: 1 }} autoComplete="off" />
-                <button onClick={handleLookup} disabled={lookingUp || !form.name} style={{ background: lookingUp ? "#dcd5cf" : "#eaf2dc", color: lookingUp ? "#9a9a9a" : "#a8c078", border: "1px solid #3a4a1a", borderRadius: 6, padding: "0 12px", fontFamily: "inherit", fontSize: 11, cursor: lookingUp ? "default" : "pointer", whiteSpace: "nowrap" }}>
+                <button onClick={handleLookup} disabled={lookingUp || !form.name} style={{ background: lookingUp ? "#343729" : "#262a1c", color: lookingUp ? "#8b8c7f" : "#b4cd85", border: "1px solid #c9dd9e", borderRadius: 6, padding: "0 12px", fontFamily: "inherit", fontSize: 11, cursor: lookingUp ? "default" : "pointer", whiteSpace: "nowrap" }}>
                   {lookingUp ? "..." : "AI"}
                 </button>
-                <label style={{ background: lookingUp ? "#dcd5cf" : "#eaf2dc", color: lookingUp ? "#9a9a9a" : "#a8c078", border: "1px solid #3a4a1a", borderRadius: 6, padding: "8px 10px", fontFamily: "inherit", fontSize: 11, cursor: lookingUp ? "default" : "pointer", whiteSpace: "nowrap", display: "flex", alignItems: "center" }}>
+                <label style={{ background: lookingUp ? "#343729" : "#262a1c", color: lookingUp ? "#8b8c7f" : "#b4cd85", border: "1px solid #c9dd9e", borderRadius: 6, padding: "8px 10px", fontFamily: "inherit", fontSize: 11, cursor: lookingUp ? "default" : "pointer", whiteSpace: "nowrap", display: "flex", alignItems: "center" }}>
                   📷
                   <input type="file" accept="image/*" capture="environment" onChange={handlePhotoUpload} disabled={lookingUp} style={{ display: "none" }} />
                 </label>
-                <label style={{ background: lookingUp ? "#dcd5cf" : "#eaf2dc", color: lookingUp ? "#9a9a9a" : "#a8c078", border: "1px solid #3a4a1a", borderRadius: 6, padding: "8px 10px", fontFamily: "inherit", fontSize: 11, cursor: lookingUp ? "default" : "pointer", whiteSpace: "nowrap", display: "flex", alignItems: "center" }}>
+                <label style={{ background: lookingUp ? "#343729" : "#262a1c", color: lookingUp ? "#8b8c7f" : "#b4cd85", border: "1px solid #c9dd9e", borderRadius: 6, padding: "8px 10px", fontFamily: "inherit", fontSize: 11, cursor: lookingUp ? "default" : "pointer", whiteSpace: "nowrap", display: "flex", alignItems: "center" }}>
                   🖼
                   <input type="file" accept="image/*" onChange={handlePhotoUpload} disabled={lookingUp} style={{ display: "none" }} />
                 </label>
               </div>
               {matchingFoods.length > 0 && form.name && !form.calories && (
-                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 6, marginTop: 2, zIndex: 50, boxShadow: "0 4px 12px rgba(0,0,0,0.06)" }}>
+                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#1d1f16", border: "1px solid #343729", borderRadius: 6, marginTop: 2, zIndex: 50, boxShadow: "0 4px 12px rgba(0,0,0,0.45)" }}>
                   {matchingFoods.map((f, i) => (
                     <button key={f.id} type="button" onClick={() => setForm(prev => ({ ...prev, name: f.name, calories: String(f.calories), protein: String(f.protein), carbs: String(f.carbs), fat: String(f.fat) }))}
-                      style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", borderTop: i === 0 ? "none" : "1px solid #f0ece8", padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: "#2a2a2a", cursor: "pointer" }}>
+                      style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", borderTop: i === 0 ? "none" : "1px solid #2a2d20", padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: "#ecebe2", cursor: "pointer" }}>
                       <span style={{ fontWeight: 500 }}>{f.name}</span>
-                      <span style={{ color: "#9a9a9a", fontSize: 11, marginLeft: 8 }}>{f.calories} cal · {f.protein}p / {f.carbs}c / {f.fat}f</span>
+                      <span style={{ color: "#8b8c7f", fontSize: 11, marginLeft: 8 }}>{f.calories} cal · {f.protein}p / {f.carbs}c / {f.fat}f</span>
                     </button>
                   ))}
                 </div>
@@ -1463,70 +1463,70 @@ export default function FoodTracker() {
               <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
                 {["homemade", "restaurant"].map(style => (
                   <button key={style} type="button" onClick={() => setPrepStyle(p => (p === style ? null : style))}
-                    style={{ background: prepStyle === style ? "#eaf2dc" : "#ffffff", border: prepStyle === style ? "1px solid #3a4a1a" : "1px solid #dcd5cf", color: prepStyle === style ? "#3a4a1a" : "#9a9a9a", borderRadius: 16, padding: "4px 10px", fontFamily: "inherit", fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>
+                    style={{ background: prepStyle === style ? "#262a1c" : "#1d1f16", border: prepStyle === style ? "1px solid #c9dd9e" : "1px solid #343729", color: prepStyle === style ? "#c9dd9e" : "#8b8c7f", borderRadius: 16, padding: "4px 10px", fontFamily: "inherit", fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>
                     {style === "homemade" ? "🏠 HOMEMADE" : "🍴 RESTAURANT"}
                   </button>
                 ))}
               </div>
-              {!form.calories && <div style={{ fontSize: 10, color: "#b8b8b8", marginTop: 4 }}>Type to autocomplete · AI for text lookup · 📷 snap a photo · 🖼 pick from library</div>}
+              {!form.calories && <div style={{ fontSize: 10, color: "#6d6e63", marginTop: 4 }}>Type to autocomplete · AI for text lookup · 📷 snap a photo · 🖼 pick from library</div>}
             </div>
             {[["Calories","calories","number"],["Protein (g)","protein","number"],["Carbs (g)","carbs","number"],["Fat (g)","fat","number"]].map(([label, key, type]) => (
               <div key={key} style={{ marginBottom: 10 }}>
-                <div style={{ fontSize: 10, color: "#9a9a9a", marginBottom: 4 }}>{label.toUpperCase()}</div>
+                <div style={{ fontSize: 10, color: "#8b8c7f", marginBottom: 4 }}>{label.toUpperCase()}</div>
                 <input type={type} value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} style={inputStyle} />
               </div>
             ))}
             <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-              <button onClick={handleAdd} disabled={!form.name || !form.calories} style={{ flex: 1, background: form.name && form.calories ? "#a8c078" : "#dcd5cf", color: form.name && form.calories ? "#111" : "#9a9a9a", border: "none", borderRadius: 8, padding: "10px", fontFamily: "inherit", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>ADD</button>
-              <button onClick={() => { setShowForm(false); setForm({ name: "", calories: "", protein: "", carbs: "", fat: "" }); aiTraceRef.current = null; }} style={{ flex: 1, background: "#ffffff", color: "#7a7a7a", border: "1px solid #dcd5cf", borderRadius: 8, padding: "10px", fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>CANCEL</button>
+              <button onClick={handleAdd} disabled={!form.name || !form.calories} style={{ flex: 1, background: form.name && form.calories ? "#b4cd85" : "#343729", color: form.name && form.calories ? "#14150f" : "#8b8c7f", border: "none", borderRadius: 8, padding: "10px", fontFamily: "inherit", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>ADD</button>
+              <button onClick={() => { setShowForm(false); setForm({ name: "", calories: "", protein: "", carbs: "", fat: "" }); aiTraceRef.current = null; }} style={{ flex: 1, background: "#1d1f16", color: "#a3a396", border: "1px solid #343729", borderRadius: 8, padding: "10px", fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>CANCEL</button>
             </div>
           </div>
         ) : (
-          <button onClick={() => setShowForm(true)} style={{ width: "100%", background: "none", border: "1px dashed #dcd5cf", color: "#b8b8b8", borderRadius: 10, padding: "14px", fontFamily: "inherit", fontSize: 11, cursor: "pointer", letterSpacing: 2, marginBottom: 16 }}
-            onMouseEnter={e => { e.target.style.borderColor = "#9a9a9a"; e.target.style.color = "#7a7a7a"; }}
-            onMouseLeave={e => { e.target.style.borderColor = "#dcd5cf"; e.target.style.color = "#b8b8b8"; }}>
+          <button onClick={() => setShowForm(true)} style={{ width: "100%", background: "none", border: "1px dashed #343729", color: "#6d6e63", borderRadius: 10, padding: "14px", fontFamily: "inherit", fontSize: 11, cursor: "pointer", letterSpacing: 2, marginBottom: 16 }}
+            onMouseEnter={e => { e.target.style.borderColor = "#8b8c7f"; e.target.style.color = "#a3a396"; }}
+            onMouseLeave={e => { e.target.style.borderColor = "#343729"; e.target.style.color = "#6d6e63"; }}>
             + ADD
           </button>
         ))}
 
         {/* Entries */}
         <div style={{ marginBottom: 16 }}>
-          {todayEntries.length === 0 && <div style={{ textAlign: "center", color: "#b8b8b8", padding: "32px 0", fontSize: 13 }}>No entries for this date</div>}
+          {todayEntries.length === 0 && <div style={{ textAlign: "center", color: "#6d6e63", padding: "32px 0", fontSize: 13 }}>No entries for this date</div>}
           {todayEntries.map(entry => (
-            <div key={entry.id} style={{ background: "#f5f1ec", border: `1px solid ${editingId === entry.id ? "#b8b8b8" : "#ece5df"}`, borderRadius: 10, padding: "14px 16px", marginBottom: 8 }}>
+            <div key={entry.id} style={{ background: "#191b12", border: `1px solid ${editingId === entry.id ? "#6d6e63" : "#2a2d20"}`, borderRadius: 10, padding: "14px 16px", marginBottom: 8 }}>
               {editingId === entry.id ? (
                 <div>
-                  <div style={{ fontSize: 10, color: "#a8c078", letterSpacing: 2, marginBottom: 10 }}>EDIT</div>
+                  <div style={{ fontSize: 10, color: "#b4cd85", letterSpacing: 2, marginBottom: 10 }}>EDIT</div>
                   {[["Name","name","text"],["Calories","calories","number"],["Protein","protein","number"],["Carbs","carbs","number"],["Fat","fat","number"]].map(([label, key, type]) => (
                     <div key={key} style={{ marginBottom: 8 }}>
-                      <div style={{ fontSize: 10, color: "#9a9a9a", marginBottom: 3 }}>{label.toUpperCase()}</div>
+                      <div style={{ fontSize: 10, color: "#8b8c7f", marginBottom: 3 }}>{label.toUpperCase()}</div>
                       <input type={type} value={editForm[key]} onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))} style={inputStyle} />
                     </div>
                   ))}
                   <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                    <button onClick={saveEdit} style={{ flex: 1, background: "#a8c078", color: "#111", border: "none", borderRadius: 8, padding: "9px", fontFamily: "inherit", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>SAVE</button>
-                    <button onClick={() => setEditingId(null)} style={{ flex: 1, background: "#ffffff", color: "#7a7a7a", border: "1px solid #dcd5cf", borderRadius: 8, padding: "9px", fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>CANCEL</button>
-                    <button onClick={() => { handleDelete(entry.id); setEditingId(null); }} style={{ background: "#ffffff", color: "#c97c7c", border: "1px solid #dcd5cf", borderRadius: 8, padding: "9px 12px", fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>DELETE</button>
+                    <button onClick={saveEdit} style={{ flex: 1, background: "#b4cd85", color: "#14150f", border: "none", borderRadius: 8, padding: "9px", fontFamily: "inherit", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>SAVE</button>
+                    <button onClick={() => setEditingId(null)} style={{ flex: 1, background: "#1d1f16", color: "#a3a396", border: "1px solid #343729", borderRadius: 8, padding: "9px", fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>CANCEL</button>
+                    <button onClick={() => { handleDelete(entry.id); setEditingId(null); }} style={{ background: "#1d1f16", color: "#d98b8b", border: "1px solid #343729", borderRadius: 8, padding: "9px 12px", fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>DELETE</button>
                   </div>
                 </div>
               ) : (
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div style={{ flex: 1, cursor: "pointer" }} onClick={() => startEdit(entry)}>
-                    <div style={{ fontSize: 14, color: "#2a2a2a", marginBottom: 4 }}>{entry.name}</div>
+                    <div style={{ fontSize: 14, color: "#ecebe2", marginBottom: 4 }}>{entry.name}</div>
                     <div style={{ fontSize: 11 }}>
-                      {entry.time && <span style={{ color: "#b8b8b8", marginRight: 10 }}>{entry.time}</span>}
-                      {entry.protein > 0 && <span style={{ color: "#a8c078", marginRight: 8 }}>{entry.protein}g P</span>}
-                      {entry.carbs > 0 && <span style={{ color: "#7a9ec0", marginRight: 8 }}>{entry.carbs}g C</span>}
-                      {entry.fat > 0 && <span style={{ color: "#c89878" }}>{entry.fat}g F</span>}
+                      {entry.time && <span style={{ color: "#6d6e63", marginRight: 10 }}>{entry.time}</span>}
+                      {entry.protein > 0 && <span style={{ color: "#b4cd85", marginRight: 8 }}>{entry.protein}g P</span>}
+                      {entry.carbs > 0 && <span style={{ color: "#8fb3d4", marginRight: 8 }}>{entry.carbs}g C</span>}
+                      {entry.fat > 0 && <span style={{ color: "#d4a985" }}>{entry.fat}g F</span>}
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 16, color: "#a8c078", fontWeight: 500 }}>{entry.calories}</span>
+                    <span style={{ fontSize: 16, color: "#b4cd85", fontWeight: 500 }}>{entry.calories}</span>
                     {!viewing && <button onClick={() => toggleFavorite(entry)} title={isFavorite(entry.name) ? "Remove from favorites" : "Save as favorite"}
-                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, padding: 0, lineHeight: 1, color: isFavorite(entry.name) ? "#c9b078" : "#b8b8b8" }}>
+                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, padding: 0, lineHeight: 1, color: isFavorite(entry.name) ? "#d4bd85" : "#6d6e63" }}>
                       {isFavorite(entry.name) ? "★" : "☆"}
                     </button>}
-                    {!viewing && <button onClick={() => startEdit(entry)} style={{ background: "none", border: "none", color: "#b8b8b8", cursor: "pointer", fontSize: 11, letterSpacing: 1 }}>EDIT</button>}
+                    {!viewing && <button onClick={() => startEdit(entry)} style={{ background: "none", border: "none", color: "#6d6e63", cursor: "pointer", fontSize: 11, letterSpacing: 1 }}>EDIT</button>}
                   </div>
                 </div>
               )}
@@ -1537,7 +1537,7 @@ export default function FoodTracker() {
 
       {tab === "trends" && (
         <div>
-          {trendData.length < 2 ? <div style={{ textAlign: "center", color: "#b8b8b8", padding: "48px 0" }}>Need at least 2 days of data</div> : <>
+          {trendData.length < 2 ? <div style={{ textAlign: "center", color: "#6d6e63", padding: "48px 0" }}>Need at least 2 days of data</div> : <>
             {/* Weekly deficit card — hidden in fuel mode (deficit is not the goal) */}
             {!fuelMode && (() => {
               const weekCalories = trendData.reduce((s, d) => s + d.calories, 0);
@@ -1547,71 +1547,71 @@ export default function FoodTracker() {
               const over = weekDeficit < 0;
               const usingActual = trendData.some(d => d.burned);
               return (
-                <div style={{ background: "#ffffff", border: `1px solid ${over ? "#f3d6d6" : "#dde8d6"}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                <div style={{ background: "#1d1f16", border: `1px solid ${over ? "#4a2f2c" : "#39412c"}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-                    <div style={{ fontSize: 10, color: "#6a6a6a", letterSpacing: 2 }}>WEEKLY DEFICIT ({trendData.length} DAYS)</div>
-                    <div style={{ fontSize: 9, color: usingActual ? "#a8c078" : "#b8b8b8" }}>{usingActual ? "WHOOP DATA" : "EST. TDEE"}</div>
+                    <div style={{ fontSize: 10, color: "#b5b5a8", letterSpacing: 2 }}>WEEKLY DEFICIT ({trendData.length} DAYS)</div>
+                    <div style={{ fontSize: 9, color: usingActual ? "#b4cd85" : "#6d6e63" }}>{usingActual ? "WHOOP DATA" : "EST. TDEE"}</div>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
-                      <div style={{ fontSize: 32, fontWeight: 500, color: over ? "#c97c7c" : "#a8c078", lineHeight: 1 }}>{Math.abs(weekDeficit).toLocaleString()}</div>
-                      <div style={{ fontSize: 11, color: "#9a9a9a", marginTop: 4 }}>{over ? "cal surplus" : "cal deficit"}</div>
+                      <div style={{ fontSize: 32, fontWeight: 500, color: over ? "#d98b8b" : "#b4cd85", lineHeight: 1 }}>{Math.abs(weekDeficit).toLocaleString()}</div>
+                      <div style={{ fontSize: 11, color: "#8b8c7f", marginTop: 4 }}>{over ? "cal surplus" : "cal deficit"}</div>
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 22, fontWeight: 500, color: over ? "#c97c7c" : "#a8c078" }}>{over ? "+" : "-"}{Math.abs(estLbs)} lbs</div>
-                      <div style={{ fontSize: 11, color: "#9a9a9a", marginTop: 4 }}>est. weight change</div>
+                      <div style={{ fontSize: 22, fontWeight: 500, color: over ? "#d98b8b" : "#b4cd85" }}>{over ? "+" : "-"}{Math.abs(estLbs)} lbs</div>
+                      <div style={{ fontSize: 11, color: "#8b8c7f", marginTop: 4 }}>est. weight change</div>
                     </div>
                   </div>
-                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #dcd5cf", display: "flex", justifyContent: "space-between", fontSize: 11, color: "#9a9a9a" }}>
-                    <span>Consumed: <span style={{ color: "#6a6a6a" }}>{weekCalories.toLocaleString()}</span></span>
-                    <span>Burned: <span style={{ color: "#6a6a6a" }}>{weekBurned.toLocaleString()}</span></span>
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #343729", display: "flex", justifyContent: "space-between", fontSize: 11, color: "#8b8c7f" }}>
+                    <span>Consumed: <span style={{ color: "#b5b5a8" }}>{weekCalories.toLocaleString()}</span></span>
+                    <span>Burned: <span style={{ color: "#b5b5a8" }}>{weekBurned.toLocaleString()}</span></span>
                   </div>
                 </div>
               );
             })()}
 
             {/* Calories vs Burned */}
-            <div style={{ background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 12, padding: 16, marginBottom: 16 }}>
-              <div style={{ fontSize: 10, color: "#a8c078", letterSpacing: 2, marginBottom: 16 }}>CALORIES VS BURNED</div>
+            <div style={{ background: "#1d1f16", border: "1px solid #343729", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+              <div style={{ fontSize: 10, color: "#b4cd85", letterSpacing: 2, marginBottom: 16 }}>CALORIES VS BURNED</div>
               <ResponsiveContainer width="100%" height={160}>
                 <BarChart data={trendData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                  <XAxis dataKey="date" tick={{ fill: "#9a9a9a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: "#9a9a9a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 8, fontFamily: "DM Mono", fontSize: 11 }} labelStyle={{ color: "#6a6a6a" }} formatter={(v, n) => [v, n === "calories" ? "Eaten" : "Burned"]} />
+                  <XAxis dataKey="date" tick={{ fill: "#8b8c7f", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: "#8b8c7f", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ background: "#1d1f16", border: "1px solid #343729", borderRadius: 8, fontFamily: "DM Mono", fontSize: 11 }} labelStyle={{ color: "#b5b5a8" }} formatter={(v, n) => [v, n === "calories" ? "Eaten" : "Burned"]} />
                   <Legend wrapperStyle={{ fontSize: 10, fontFamily: "DM Mono", paddingTop: 8 }} formatter={n => n === "calories" ? "Eaten" : "Burned (Whoop)"} />
-                  <Bar dataKey="calories" fill="#a8c078" radius={[3,3,0,0]} opacity={0.85} />
-                  <Bar dataKey="burned" fill="#7a9ec0" radius={[3,3,0,0]} opacity={0.6} />
+                  <Bar dataKey="calories" fill="#b4cd85" radius={[3,3,0,0]} opacity={0.85} />
+                  <Bar dataKey="burned" fill="#8fb3d4" radius={[3,3,0,0]} opacity={0.6} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
 
             {/* Daily deficit line */}
-            <div style={{ background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 12, padding: 16, marginBottom: 16 }}>
-              <div style={{ fontSize: 10, color: "#6a6a6a", letterSpacing: 2, marginBottom: 4 }}>DAILY DEFICIT</div>
-              <div style={{ fontSize: 10, color: "#b8b8b8", marginBottom: 16 }}>+ = deficit · − = surplus · blue dot = Whoop actual</div>
+            <div style={{ background: "#1d1f16", border: "1px solid #343729", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+              <div style={{ fontSize: 10, color: "#b5b5a8", letterSpacing: 2, marginBottom: 4 }}>DAILY DEFICIT</div>
+              <div style={{ fontSize: 10, color: "#6d6e63", marginBottom: 16 }}>+ = deficit · − = surplus · blue dot = Whoop actual</div>
               <ResponsiveContainer width="100%" height={130}>
                 <LineChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <XAxis dataKey="date" tick={{ fill: "#9a9a9a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: "#9a9a9a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 8, fontFamily: "DM Mono", fontSize: 11 }} labelStyle={{ color: "#6a6a6a" }} formatter={(v) => [`${v > 0 ? "-" : "+"}${Math.abs(v)} cal`, "Deficit"]} />
-                  <Line type="monotone" dataKey="deficit" stroke="#a8c078" strokeWidth={2}
-                    dot={(props) => { const { cx, cy, payload } = props; return <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={4} fill={payload.burned ? "#7a9ec0" : "#a8c078"} stroke="none" />; }} />
+                  <XAxis dataKey="date" tick={{ fill: "#8b8c7f", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: "#8b8c7f", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ background: "#1d1f16", border: "1px solid #343729", borderRadius: 8, fontFamily: "DM Mono", fontSize: 11 }} labelStyle={{ color: "#b5b5a8" }} formatter={(v) => [`${v > 0 ? "-" : "+"}${Math.abs(v)} cal`, "Deficit"]} />
+                  <Line type="monotone" dataKey="deficit" stroke="#b4cd85" strokeWidth={2}
+                    dot={(props) => { const { cx, cy, payload } = props; return <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={4} fill={payload.burned ? "#8fb3d4" : "#b4cd85"} stroke="none" />; }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
 
             {/* Macros */}
-            <div style={{ background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 12, padding: 16, marginBottom: 16 }}>
-              <div style={{ fontSize: 10, color: "#6a6a6a", letterSpacing: 2, marginBottom: 16 }}>MACROS (g)</div>
+            <div style={{ background: "#1d1f16", border: "1px solid #343729", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+              <div style={{ fontSize: 10, color: "#b5b5a8", letterSpacing: 2, marginBottom: 16 }}>MACROS (g)</div>
               <ResponsiveContainer width="100%" height={160}>
                 <LineChart data={trendData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                  <XAxis dataKey="date" tick={{ fill: "#9a9a9a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: "#9a9a9a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 8, fontFamily: "DM Mono", fontSize: 11 }} labelStyle={{ color: "#6a6a6a" }} />
+                  <XAxis dataKey="date" tick={{ fill: "#8b8c7f", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: "#8b8c7f", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ background: "#1d1f16", border: "1px solid #343729", borderRadius: 8, fontFamily: "DM Mono", fontSize: 11 }} labelStyle={{ color: "#b5b5a8" }} />
                   <Legend wrapperStyle={{ fontSize: 10, fontFamily: "DM Mono", paddingTop: 8 }} />
-                  <Line type="monotone" dataKey="protein" stroke="#a8c078" strokeWidth={2} dot={{ fill: "#a8c078", r: 3 }} />
-                  <Line type="monotone" dataKey="carbs" stroke="#7a9ec0" strokeWidth={2} dot={{ fill: "#7a9ec0", r: 3 }} />
-                  <Line type="monotone" dataKey="fat" stroke="#c89878" strokeWidth={2} dot={{ fill: "#c89878", r: 3 }} />
+                  <Line type="monotone" dataKey="protein" stroke="#b4cd85" strokeWidth={2} dot={{ fill: "#b4cd85", r: 3 }} />
+                  <Line type="monotone" dataKey="carbs" stroke="#8fb3d4" strokeWidth={2} dot={{ fill: "#8fb3d4", r: 3 }} />
+                  <Line type="monotone" dataKey="fat" stroke="#d4a985" strokeWidth={2} dot={{ fill: "#d4a985", r: 3 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -1620,18 +1620,18 @@ export default function FoodTracker() {
             {!fuelMode && (() => {
               const surplus = cumDeficit < 0;
               return (
-                <div style={{ background: "#ffffff", border: `2px solid ${surplus ? "#f3d6d6" : "#dde8d6"}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                <div style={{ background: "#1d1f16", border: `2px solid ${surplus ? "#4a2f2c" : "#39412c"}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-                    <div style={{ fontSize: 10, color: "#6a6a6a", letterSpacing: 2 }}>CUMULATIVE — ALL TIME ({allTimeData.length} DAYS)</div>
+                    <div style={{ fontSize: 10, color: "#b5b5a8", letterSpacing: 2 }}>CUMULATIVE — ALL TIME ({allTimeData.length} DAYS)</div>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
-                      <div style={{ fontSize: 36, fontWeight: 500, color: surplus ? "#c97c7c" : "#a8c078", lineHeight: 1 }}>{Math.abs(cumDeficit).toLocaleString()}</div>
-                      <div style={{ fontSize: 11, color: "#9a9a9a", marginTop: 4 }}>total cal {surplus ? "surplus" : "deficit"}</div>
+                      <div style={{ fontSize: 36, fontWeight: 500, color: surplus ? "#d98b8b" : "#b4cd85", lineHeight: 1 }}>{Math.abs(cumDeficit).toLocaleString()}</div>
+                      <div style={{ fontSize: 11, color: "#8b8c7f", marginTop: 4 }}>total cal {surplus ? "surplus" : "deficit"}</div>
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 28, fontWeight: 500, color: surplus ? "#c97c7c" : "#a8c078" }}>{surplus ? "+" : "-"}{Math.abs(cumLbs)} lbs</div>
-                      <div style={{ fontSize: 11, color: "#9a9a9a", marginTop: 4 }}>projected change</div>
+                      <div style={{ fontSize: 28, fontWeight: 500, color: surplus ? "#d98b8b" : "#b4cd85" }}>{surplus ? "+" : "-"}{Math.abs(cumLbs)} lbs</div>
+                      <div style={{ fontSize: 11, color: "#8b8c7f", marginTop: 4 }}>projected change</div>
                     </div>
                   </div>
                 </div>
@@ -1639,49 +1639,49 @@ export default function FoodTracker() {
             })()}
 
             {/* Cumulative weight loss trend — hidden in fuel mode */}
-            {!fuelMode && <div style={{ background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 12, padding: 16, marginBottom: 16 }}>
-              <div style={{ fontSize: 10, color: "#6a6a6a", letterSpacing: 2, marginBottom: 4 }}>CUMULATIVE WEIGHT LOSS</div>
-              <div style={{ fontSize: 10, color: "#b8b8b8", marginBottom: 16 }}>projected · based on 3500 cal ≈ 1 lb</div>
+            {!fuelMode && <div style={{ background: "#1d1f16", border: "1px solid #343729", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+              <div style={{ fontSize: 10, color: "#b5b5a8", letterSpacing: 2, marginBottom: 4 }}>CUMULATIVE WEIGHT LOSS</div>
+              <div style={{ fontSize: 10, color: "#6d6e63", marginBottom: 16 }}>projected · based on 3500 cal ≈ 1 lb</div>
               <ResponsiveContainer width="100%" height={180}>
                 <LineChart data={allTimeData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                  <XAxis dataKey="date" tick={{ fill: "#9a9a9a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: "#9a9a9a", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} tickFormatter={v => `${v} lb`} />
-                  <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 8, fontFamily: "DM Mono", fontSize: 11 }} labelStyle={{ color: "#6a6a6a" }} formatter={(v) => [`${v} lbs`, "Projected loss"]} />
-                  <Line type="monotone" dataKey="cumulativeLbs" stroke="#a8c078" strokeWidth={2} dot={{ fill: "#a8c078", r: 3 }} />
+                  <XAxis dataKey="date" tick={{ fill: "#8b8c7f", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: "#8b8c7f", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} tickFormatter={v => `${v} lb`} />
+                  <Tooltip contentStyle={{ background: "#1d1f16", border: "1px solid #343729", borderRadius: 8, fontFamily: "DM Mono", fontSize: 11 }} labelStyle={{ color: "#b5b5a8" }} formatter={(v) => [`${v} lbs`, "Projected loss"]} />
+                  <Line type="monotone" dataKey="cumulativeLbs" stroke="#b4cd85" strokeWidth={2} dot={{ fill: "#b4cd85", r: 3 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>}
 
             {/* Daily summary */}
-            <div style={{ background: "#ffffff", border: "1px solid #dcd5cf", borderRadius: 12, padding: 16 }}>
-              <div style={{ fontSize: 10, color: "#6a6a6a", letterSpacing: 2, marginBottom: 12 }}>DAILY SUMMARY</div>
+            <div style={{ background: "#1d1f16", border: "1px solid #343729", borderRadius: 12, padding: 16 }}>
+              <div style={{ fontSize: 10, color: "#b5b5a8", letterSpacing: 2, marginBottom: 12 }}>DAILY SUMMARY</div>
               {[...trendData].reverse().map(d => {
                 const over = d.deficit < 0;
                 return (
-                  <div key={d.date} style={{ padding: "10px 0", borderBottom: "1px solid #f5f1ec" }}>
+                  <div key={d.date} style={{ padding: "10px 0", borderBottom: "1px solid #191b12" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                      <span style={{ fontSize: 12, color: "#6a6a6a" }}>{d.date}</span>
+                      <span style={{ fontSize: 12, color: "#b5b5a8" }}>{d.date}</span>
                       <div style={{ display: "flex", gap: 12 }}>
-                        <span style={{ fontSize: 13, color: "#a8c078", fontWeight: 500 }}>{d.calories} eaten</span>
-                        {d.burned && <span style={{ fontSize: 13, color: "#7a9ec0", fontWeight: 500 }}>{d.burned} burned</span>}
+                        <span style={{ fontSize: 13, color: "#b4cd85", fontWeight: 500 }}>{d.calories} eaten</span>
+                        {d.burned && <span style={{ fontSize: 13, color: "#8fb3d4", fontWeight: 500 }}>{d.burned} burned</span>}
                       </div>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
                       <div style={{ fontSize: 11 }}>
-                        <span style={{ color: "#a8c078", marginRight: 8 }}>{d.protein}g P</span>
-                        <span style={{ color: "#7a9ec0", marginRight: 8 }}>{d.carbs}g C</span>
-                        <span style={{ color: "#c89878" }}>{d.fat}g F</span>
+                        <span style={{ color: "#b4cd85", marginRight: 8 }}>{d.protein}g P</span>
+                        <span style={{ color: "#8fb3d4", marginRight: 8 }}>{d.carbs}g C</span>
+                        <span style={{ color: "#d4a985" }}>{d.fat}g F</span>
                       </div>
-                      <span style={{ fontSize: 12, fontWeight: 500, color: over ? "#c97c7c" : "#a8c078" }}>
+                      <span style={{ fontSize: 12, fontWeight: 500, color: over ? "#d98b8b" : "#b4cd85" }}>
                         {over ? `▲ ${Math.abs(d.deficit)} surplus` : `▼ ${d.deficit} deficit`}
-                        {!d.burned && <span style={{ color: "#b8b8b8", fontSize: 10 }}> est.</span>}
+                        {!d.burned && <span style={{ color: "#6d6e63", fontSize: 10 }}> est.</span>}
                       </span>
                     </div>
                     {(d.recovery || d.strain || d.sleep) && (
                       <div style={{ display: "flex", gap: 12, marginTop: 6, fontSize: 10 }}>
-                        {d.recovery && <span style={{ color: d.recovery >= 67 ? "#a8c078" : d.recovery >= 34 ? "#c9b078" : "#c97c7c" }}>R:{d.recovery}%</span>}
-                        {d.strain && <span style={{ color: "#c89878" }}>S:{d.strain}</span>}
-                        {d.sleep && <span style={{ color: "#7a9ec0" }}>💤{d.sleep}h</span>}
+                        {d.recovery && <span style={{ color: d.recovery >= 67 ? "#b4cd85" : d.recovery >= 34 ? "#d4bd85" : "#d98b8b" }}>R:{d.recovery}%</span>}
+                        {d.strain && <span style={{ color: "#d4a985" }}>S:{d.strain}</span>}
+                        {d.sleep && <span style={{ color: "#8fb3d4" }}>💤{d.sleep}h</span>}
                       </div>
                     )}
                   </div>
