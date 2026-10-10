@@ -6,6 +6,7 @@ import {
   protStats as protStatsOver, avgLastN,
   medianIntake, lowLogThreshold, isSuspiciouslyLow, suspiciousLowDays,
 } from "./lib/insights.js";
+import { pickBurned } from "./lib/burn.js";
 
 const API = "";  // empty = same host
 // Auth lives in an HttpOnly cookie set by /api/login. Browser sends it
@@ -798,6 +799,7 @@ export default function FoodTracker() {
   const [entries, setEntries] = useState([]);
   const [favorites, setFavorites] = useState([]);
   const [whoopData, setWhoopData] = useState({});
+  const [appleData, setAppleData] = useState({});
   const [whoopStatus, setWhoopStatus] = useState(null);
   const [bodyData, setBodyData] = useState([]); // [{ date, weight_lb, waist_in }]
   const [me, setMe] = useState(null);  // { id, name, preferences }
@@ -839,7 +841,7 @@ export default function FoodTracker() {
       try {
         // Household viewing: read endpoints accept ?view_as= for authorized viewers
         const va = viewAs ? `?view_as=${viewAs.id}` : "";
-        const [u, e, w, t, f, ws, b, vl] = await Promise.all([
+        const [u, e, w, t, f, ws, b, vl, ah] = await Promise.all([
           apiFetch(`${API}/api/auth?action=me`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
           apiFetch(`${API}/api/entries${va}`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
           apiFetch(`${API}/api/whoop${va}`).then(r => { if (!r.ok) throw new Error("auth"); return r.json(); }),
@@ -849,11 +851,14 @@ export default function FoodTracker() {
           // Tolerate failure — body_log table may not exist until migration runs
           apiFetch(`${API}/api/body${va}`).then(r => r.ok ? r.json() : []).catch(() => []),
           apiFetch(`${API}/api/auth?action=viewable`).then(r => r.ok ? r.json() : []).catch(() => []),
+          // Apple Health burn (optional source; tolerate missing table/failure)
+          apiFetch(`${API}/api/body?kind=health${viewAs ? `&view_as=${viewAs.id}` : ""}`).then(r => r.ok ? r.json() : {}).catch(() => ({})),
         ]);
         if (cancelled) return;
         setMe(u);
         setEntries(e);
         setWhoopData(w);
+        setAppleData(ah && typeof ah === "object" && !Array.isArray(ah) ? ah : {});
         setTargets(t);
         setFavorites(f);
         setWhoopStatus(ws);
@@ -936,10 +941,9 @@ export default function FoodTracker() {
   const maintenanceKcal = parseInt(me?.preferences?.maintenance_kcal) || targets.calories;
   const buildRow = (date) => {
     const t = dayTotals(date);
-    const w = whoopData[date];
-    const burned = w?.burned || null;
+    const { burned, source } = pickBurned(whoopData[date], appleData[date], date, today, maintenanceKcal);
     const deficit = dayDeficit(t.calories, burned, maintenanceKcal);
-    return { date: fmt(date), rawDate: date, calories: t.calories, protein: t.protein, carbs: t.carbs, fat: t.fat, burned, deficit };
+    return { date: fmt(date), rawDate: date, calories: t.calories, protein: t.protein, carbs: t.carbs, fat: t.fat, burned, burnSource: source, deficit };
   };
   const trendData = last7.map(buildRow);
   // All-time data + cumulative deficit running total
@@ -1550,7 +1554,7 @@ export default function FoodTracker() {
                 <div style={{ background: "#1d1f16", border: `1px solid ${over ? "#4a2f2c" : "#39412c"}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
                     <div style={{ fontSize: 10, color: "#b5b5a8", letterSpacing: 2 }}>WEEKLY DEFICIT ({trendData.length} DAYS)</div>
-                    <div style={{ fontSize: 9, color: usingActual ? "#b4cd85" : "#6d6e63" }}>{usingActual ? "WHOOP DATA" : "EST. TDEE"}</div>
+                    <div style={{ fontSize: 9, color: usingActual ? "#b4cd85" : "#6d6e63" }}>{usingActual ? (trendData.some(d => d.burnSource === "apple") ? (trendData.some(d => d.burnSource === "whoop") ? "WHOOP + APPLE" : "APPLE HEALTH") : "WHOOP DATA") : "EST. TDEE"}</div>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
@@ -1578,7 +1582,7 @@ export default function FoodTracker() {
                   <XAxis dataKey="date" tick={{ fill: "#8b8c7f", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fill: "#8b8c7f", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={{ background: "#1d1f16", border: "1px solid #343729", borderRadius: 8, fontFamily: "DM Mono", fontSize: 11 }} labelStyle={{ color: "#b5b5a8" }} formatter={(v, n) => [v, n === "calories" ? "Eaten" : "Burned"]} />
-                  <Legend wrapperStyle={{ fontSize: 10, fontFamily: "DM Mono", paddingTop: 8 }} formatter={n => n === "calories" ? "Eaten" : "Burned (Whoop)"} />
+                  <Legend wrapperStyle={{ fontSize: 10, fontFamily: "DM Mono", paddingTop: 8 }} formatter={n => n === "calories" ? "Eaten" : "Burned"} />
                   <Bar dataKey="calories" fill="#b4cd85" radius={[3,3,0,0]} opacity={0.85} />
                   <Bar dataKey="burned" fill="#8fb3d4" radius={[3,3,0,0]} opacity={0.6} />
                 </BarChart>
@@ -1588,7 +1592,7 @@ export default function FoodTracker() {
             {/* Daily deficit line */}
             <div style={{ background: "#1d1f16", border: "1px solid #343729", borderRadius: 12, padding: 16, marginBottom: 16 }}>
               <div style={{ fontSize: 10, color: "#b5b5a8", letterSpacing: 2, marginBottom: 4 }}>DAILY DEFICIT</div>
-              <div style={{ fontSize: 10, color: "#6d6e63", marginBottom: 16 }}>+ = deficit · − = surplus · blue dot = Whoop actual</div>
+              <div style={{ fontSize: 10, color: "#6d6e63", marginBottom: 16 }}>+ = deficit · − = surplus · blue dot = measured burn</div>
               <ResponsiveContainer width="100%" height={130}>
                 <LineChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <XAxis dataKey="date" tick={{ fill: "#8b8c7f", fontSize: 10, fontFamily: "DM Mono" }} axisLine={false} tickLine={false} />

@@ -6,6 +6,8 @@ const { requireUser, resolveReadUser } = require('./_auth');
 const { db } = require('./_db');
 
 module.exports = async function handler(req, res) {
+  // Apple Health shares this function file to stay under Vercel's 12-function cap.
+  if ((req.query?.kind || '') === 'health') return require('./_health')(req, res);
   const user = await requireUser(req, res);
   if (!user) return;
   res.setHeader('Cache-Control', 'no-store');
