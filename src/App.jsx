@@ -1374,16 +1374,52 @@ export default function FoodTracker() {
           <MacroRow label="Protein" eaten={totals.protein} target={targets.protein} color="#b4cd85" />
           <MacroRow label="Carbs" eaten={totals.carbs} target={targets.carbs} color="#8fb3d4" />
           <MacroRow label="Fat" eaten={totals.fat} target={targets.fat} color="#d4a985" />
-          {whoopData[selectedDate] && (() => {
+          {(whoopData[selectedDate] || appleData[selectedDate]) && (() => {
             const w = whoopData[selectedDate];
-            const recoveryColor = w.recovery >= 67 ? "#b4cd85" : w.recovery >= 34 ? "#d4bd85" : "#d98b8b";
+            const a = appleData[selectedDate];
+            const recoveryColor = w?.recovery >= 67 ? "#b4cd85" : w?.recovery >= 34 ? "#d4bd85" : "#d98b8b";
+            const Stat = ({ value, label, color }) => (
+              <div style={{ textAlign: "center", minWidth: 48 }}><div style={{ fontSize: 16, fontWeight: 500, color }}>{value}</div><div style={{ fontSize: 9, color: "#6d6e63", marginTop: 2 }}>{label}</div></div>
+            );
+            const Net = ({ burned }) => <Stat value={Math.abs(burned - totals.calories)} label={burned - totals.calories >= 0 ? "NET DEFICIT" : "NET OVER"} color={burned - totals.calories >= 0 ? "#b4cd85" : "#d98b8b"} />;
+            const SourceTag = ({ children, color, note }) => (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 9, letterSpacing: 2, color, border: `1px solid ${color}`, borderRadius: 4, padding: "2px 6px" }}>{children}</span>
+                {note && <span style={{ fontSize: 9, color: "#6d6e63" }}>{note}</span>}
+              </div>
+            );
+            const appleTime = a?.updated_at ? new Date(a.updated_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : null;
             return (
-              <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #2a2d20", display: "flex", justifyContent: "space-between" }}>
-                {w.recovery && <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 500, color: recoveryColor }}>{w.recovery}%</div><div style={{ fontSize: 9, color: "#6d6e63", marginTop: 2 }}>RECOVERY</div></div>}
-                {w.strain && <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 500, color: "#8fb3d4" }}>{w.strain}</div><div style={{ fontSize: 9, color: "#6d6e63", marginTop: 2 }}>STRAIN</div></div>}
-                {w.sleep && <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 500, color: "#ecebe2" }}>{w.sleep}h</div><div style={{ fontSize: 9, color: "#6d6e63", marginTop: 2 }}>SLEEP</div></div>}
-                {w.burned && <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 500, color: "#d4a985" }}>{w.burned}</div><div style={{ fontSize: 9, color: "#6d6e63", marginTop: 2 }}>BURNED</div></div>}
-                {w.burned && <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 500, color: (w.burned - totals.calories) > 0 ? "#b4cd85" : "#d98b8b" }}>{Math.abs(w.burned - totals.calories)}</div><div style={{ fontSize: 9, color: "#6d6e63", marginTop: 2 }}>NET</div></div>}
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #2a2d20" }}>
+                {w && (
+                  <div style={{ marginBottom: a ? 14 : 0 }}>
+                    <SourceTag color="#b4cd85" note="finished days · drives deficit math">WHOOP</SourceTag>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      {w.recovery && <Stat value={`${w.recovery}%`} label="RECOVERY" color={recoveryColor} />}
+                      {w.strain && <Stat value={w.strain} label="STRAIN" color="#8fb3d4" />}
+                      {w.sleep && <Stat value={`${w.sleep}h`} label="SLEEP" color="#ecebe2" />}
+                      {w.burned && <Stat value={w.burned} label="BURNED" color="#d4a985" />}
+                      {w.burned && <Net burned={w.burned} />}
+                    </div>
+                  </div>
+                )}
+                {a && (
+                  <div>
+                    <SourceTag color="#8fb3d4" note={appleTime ? `as of ${appleTime}${selectedDate === today ? " · live today" : ""}` : null}>APPLE WATCH</SourceTag>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      {a.active_kcal != null && <Stat value={a.active_kcal} label="ACTIVE" color="#d4a985" />}
+                      {a.resting_kcal != null && <Stat value={a.resting_kcal} label="RESTING" color="#ecebe2" />}
+                      {a.steps != null && <Stat value={a.steps.toLocaleString()} label="STEPS" color="#8fb3d4" />}
+                      {a.burned && <Stat value={a.burned} label="BURNED" color="#d4a985" />}
+                      {a.burned && <Net burned={a.burned} />}
+                    </div>
+                    {w?.burned && a.burned && (
+                      <div style={{ fontSize: 9, color: "#6d6e63", marginTop: 8 }}>
+                        Apple reads {a.burned - w.burned >= 0 ? "+" : ""}{a.burned - w.burned} kcal ({Math.round(((a.burned - w.burned) / w.burned) * 100)}%) vs Whoop
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })()}

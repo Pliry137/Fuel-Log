@@ -23,7 +23,7 @@ module.exports = async function health(req, res) {
     const target = await resolveReadUser(req, user);
     if (!target) return res.status(403).json({ error: 'Not authorized to view this user' });
     const { data, error } = await db.from('apple_health')
-      .select('date, active_kcal, resting_kcal, burned, steps, resting_hr')
+      .select('date, active_kcal, resting_kcal, burned, steps, resting_hr, updated_at')
       .eq('user_id', target.id);
     if (error) return res.status(500).json({ error: error.message });
     const out = {};
